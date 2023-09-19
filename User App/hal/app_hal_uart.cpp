@@ -7,16 +7,17 @@
 
 #include "app_hal_uart.h"
 
-#include <cstring> //for memcpy
+#include <algorithm> //for stl versions of memcpy
 
 ///========================= initialization of static fields ========================
 //UART instance will be initialized in the constructor, so don't need to worry too much about the NULL here
-UART::UART_hardware_channel_t UART::LPUART = {&hlpuart1, MX_LPUART1_UART_Init, NULL};
+UART::UART_Hardware_Channel UART::LPUART = {&hlpuart1, MX_LPUART1_UART_Init, NULL};
 
 //===================================================================================
 
-UART::UART(UART_hardware_channel_t* const _hardware, const uint8_t _SOF, const uint8_t _EOF, uint8_t* const _rxbuf, const size_t _rxbuflen):
-	hardware(_hardware), SOF(_SOF), EOF(_EOF), rxbuf(_rxbuf), rxbuflen(_rxbuflen)
+UART::UART(	UART_Hardware_Channel* const _hardware, const uint8_t _START_OF_FRAME, const uint8_t _END_OF_FRAME,
+			std::span<uint8_t, std::dynamic_extent> _txbuf, std::span<uint8_t, std::dynamic_extent> _rxbuf):
+	hardware(_hardware), START_OF_FRAME(_START_OF_FRAME), END_OF_FRAME(_END_OF_FRAME), txbuf(_txbuf), rxbuf(_rxbuf)
 {
 	//point the hardware structure to the particular firmware instance
 	hardware->instance = this;
@@ -30,20 +31,37 @@ void UART::init() {
 	//start listening for received packets over interrupt
 	HAL_UART_Receive_IT(hardware->huart, &received_char, 1);
 }
-void UART::transmit(const uint8_t* buf, size_t len) {
+
+void UART::transmit(const std::span<uint8_t, std::dynamic_extent> bytes_to_tx) {
+	//if our transmit buffer isn't big enough to transmit the message, don't even try sending
+	if(bytes_to_tx.size() > txbuf.size()) return;
+
+	//only copy over when the previous transmit has finished
 	while(hardware->huart->gState != HAL_UART_STATE_READY); //wait for the UART to be ready for transmit
-	HAL_UART_Transmit_DMA(hardware->huart, buf, len); //fire off the transmit over DMA
+
+	//copy over the message using stl conventions
+	std::copy(bytes_to_tx.begin(), bytes_to_tx.end(), txbuf.begin());
+
+	//fire off a transmit over DMA with the amount of bytes corresponding to the input message
+	HAL_UART_Transmit_DMA(hardware->huart, txbuf.data(), (uint16_t)bytes_to_tx.size());
 }
 
-size_t UART::get_packet(uint8_t* const rx_packet) {
+size_t UART::get_packet(std::span<uint8_t, std::dynamic_extent> rx_packet) {
 	//if we don't have a packet, return 0
 	if(!received_packet_pending) return 0;
 
 	//if we do have a packet
+
+	//compute the packet size
 	//the size will be rx_buffer_pointer + 1 since SOF will be at 0 and EOF will be at rx_buffer_pointer
-	//copy the buffer into the rx_packet parameter
 	size_t packet_size = rx_buffer_pointer + 1;
-	memcpy(rx_packet, rxbuf, packet_size);
+
+	//ensure that we have enough space to put the RX buffer into the rx_packet
+	//do this the canonical c++ way using
+	if(rx_packet.size() >= packet_size) {
+		auto buf_section = rxbuf.subspan(0, packet_size); //grab the relevant slice of the rx buffer
+		std::copy(buf_section.begin(), buf_section.end(), rx_packet.begin()); //copy it into the packet passed in
+	}
 
 	//indicate that we have serviced the packet and we can start listening again
 	received_packet_pending = false;
@@ -61,14 +79,14 @@ void UART::RX_interrupt_handler() {
 	if(!received_packet_pending) {
 
 		//check if we've received a start of frame (and that we're not waiting on a packet to be serviced)
-		if(received_char == SOF) {
+		if(received_char == START_OF_FRAME) {
 			rxbuf[0] = received_char; //put the SOF in the first spot in our receive buffer
 			rx_buffer_pointer = 1; //point to the next free index
 			received_sof_good_packet = true; //start listening to the rest of the message
 		}
 
 		//alternatively, check if we've received an end-of-frame
-		else if(received_char == EOF) {
+		else if(received_char == END_OF_FRAME) {
 			//if we've received a start of frame and we have space to add the character to the buffer
 			//add the character to the buffer and notify the main thread
 			if(received_sof_good_packet) {
@@ -87,7 +105,7 @@ void UART::RX_interrupt_handler() {
 
 			//increment our buffer pointer if we can
 			//if we can't, it means we have a bad packet; prevent it from being dispatched
-			if(rx_buffer_pointer < rxbuflen - 1) rx_buffer_pointer++;
+			if(rx_buffer_pointer < rxbuf.size() - 1) rx_buffer_pointer++;
 			else received_sof_good_packet = false;
 		}
 	}
@@ -97,7 +115,9 @@ void UART::RX_interrupt_handler() {
 }
 
 //just run the error callback when the error handler is invoked
-void UART::error_handler() { this->err_cb(); }
+void UART::error_handler() {
+	this->err_cb();
+}
 
 //======================================= PROCESSOR ISRs ====================================
 

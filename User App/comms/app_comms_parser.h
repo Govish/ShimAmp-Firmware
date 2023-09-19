@@ -101,7 +101,8 @@ extern "C" {
 	#include "stm32g474xx.h" //for uint8_t type
 }
 
-#include "app_comms_cobs.h" //to get the max message length
+#include <span> //for stl interfaces
+#include "app_comms_cobs.h" //for message lengths and such
 
 class Parser {
 public:
@@ -159,27 +160,25 @@ public:
 
 	//function signature of a command handler
 	//takes as arguments:
-		//--reference to a const array of bytes representing the payload
-		//--const size_t representing the payload length
-		//--reference to an array of bytes representing the response
+		//--span peeping into the payload of the rx packet; truncated to the valid size
+		//--span allowing access a section of the transmit buffer dedicated to the payload
 	//reponds with a pair
 		//first element is what kinda response to send
 		//second element is the payload size
-	typedef std::pair<ParserHandlerResponse_t, size_t> (*command_handler_t)(	const std::array<uint8_t, MAX_PAYLOAD_LENGTH>& rx_payload, const size_t rx_payload_length,
-																				std::array<uint8_t, MAX_PAYLOAD_LENGTH>& tx_payload);
+	typedef std::pair<ParserHandlerResponse_t, size_t> (*command_handler_t)(	const std::span<uint8_t, std::dynamic_extent> rx_payload ,
+																				std::span<uint8_t, std::dynamic_extent> tx_payload);
 
 	//function signature of a request handler
 	//as of now, is the same as a command_handler, but separating for future-proofing
-	typedef std::pair<ParserHandlerResponse_t, size_t> (*request_handler_t)(	const std::array<uint8_t, MAX_PAYLOAD_LENGTH>& rx_payload, const size_t rx_payload_length,
-																				std::array<uint8_t, MAX_PAYLOAD_LENGTH>& tx_payload);
+	typedef std::pair<ParserHandlerResponse_t, size_t> (*request_handler_t)(	const std::span<uint8_t, std::dynamic_extent> rx_payload ,
+																				std::span<uint8_t, std::dynamic_extent> tx_payload);
 
 	//==============================================================================================================
 
-	//intention is to pass statically initialized, fixed-sized arrays to this function and vary the length of the message with the "len" parameter
-	//buffer size should be able to accommodate the longest possible tx and rx packets; defined in the COBS class
-	//not a super elegant implementation, but relatively foolproof, lightweight, and high performance implementation
-	static int16_t parse_buffer(	const std::array<uint8_t, Cobs::MSG_MAX_UNENCODED_LENGTH>& rx_packet, const size_t rx_len,
-									std::array<uint8_t, Cobs::MSG_MAX_UNENCODED_LENGTH>& tx_packet);
+	//continuing the `std::span` interface used in other communication subsystems
+	//provides a scalable, c++ style way to interface with the parser
+	static int16_t parse_buffer(	const std::span<uint8_t, std::dynamic_extent> rx_packet,
+									std::span<uint8_t, std::dynamic_extent> tx_packet);
 
 	//attach command and request handlers to particular command and request codes
 	static void attach_command_cb(const size_t command_code, const command_handler_t command_handler);

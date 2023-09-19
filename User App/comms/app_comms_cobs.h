@@ -5,14 +5,11 @@
  *      Author: Ishaan
  *
  *  This module serves to perform cobs encoding and decoding as a part of the communications subsystem
- *  It also contains information about the start-of-frame and end-of-frame characters
+ *  It also contains information about the start-of-frame and end-of-frame characters, along with message size limits
  *
- *  re: the arrays being passed to the functions as parameters, I know this is possible to pass variable sized arrays using templates
- *  	HOWEVER I can't figure out a way to elegantly do this in an application without requiring aggressive stack usage/copying
- *  		OR some kinda sus reinterpret-cast type stuff to make larger arrays get treated like smaller arrays
- *
- *  	As such, I'm encouraging the passing of fixed-size, statically allocated arrays along with a separate `length` parameter
- *  		This ensures fast, predictable performance, along with some inherent foolproofing that could catch errors re: improperly sized arrays
+ *  My general convention throughout the communication subsystem is to share data between objects using `std::span`s
+ *  This follows canonical c++ coding techniques, and can leverage memory copying and type casting functions built into the language
+ *  It also achieves this without templating, which, IMO, results in clean, concise, readable code
  */
 
 #ifndef INC_APP_COBS_H_
@@ -22,7 +19,7 @@
 extern "C" {
 	#include "stm32g474xx.h" //for uint8_t
 }
-#include <array> //passing information to and from functions using arrays
+#include <span> //passing information to and from functions using spans
 
 class Cobs {
 private:
@@ -36,19 +33,17 @@ public:
 	static const uint8_t CHAR_START_OF_FRAME = 0xFF;
 	static const uint8_t CHAR_END_OF_FRAME = CHAR_DELIMITER;
 
-	//ensure that this function cannot change the input array
-	//also *ensure* arrays of adequate size are unconditionally being passed to the function
-	//the `input_length` argument tells us how long the message actually is
+	//pass the unencoded input via a span
+	//and dump the encoded output into the memory location pointed by the span
 	//return length of the encoded message if encode successful, -1 if not
-	static int16_t encode(	const std::array<uint8_t, MSG_MAX_UNENCODED_LENGTH>& input_unencoded, const size_t input_length,
-							std::array<uint8_t, MSG_MAX_ENCODED_LENGTH>& output_encoded);
+	static int16_t encode(	const std::span<uint8_t, std::dynamic_extent> input_unencoded,
+							std::span<uint8_t, std::dynamic_extent> output_encoded);
 
-	//ensure this function cannot change the input array
-	//also *ensure* arrays of adequate size are unconditionally being passed to the function
-	//the `input_length` argument tells us how long the message actually is
+	//pass the encoded input via a span
+	//and dump the decoded message into the memory location pointed by the span
 	//return length of the decoded message if decode successful, -1 if not
-	static int16_t decode(	const std::array<uint8_t, MSG_MAX_ENCODED_LENGTH>& input_encoded, const size_t input_length,
-							std::array<uint8_t, MSG_MAX_UNENCODED_LENGTH>& output_decoded);
+	static int16_t decode(	const std::span<uint8_t, std::dynamic_extent> input_encoded,
+							std::span<uint8_t, std::dynamic_extent> output_decoded);
 
 };
 

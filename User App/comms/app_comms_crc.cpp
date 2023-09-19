@@ -40,8 +40,7 @@ Comms_CRC::Comms_CRC(const uint16_t _poly, const uint16_t _seed, const uint16_t 
 
 //remember, the high byte of the CRC goes first (i.e. the lower index in the buffer)
 //and the low byte goes next (higher index in the buffer)
-template<size_t S>
-uint16_t Comms_CRC::compute_crc(std::array<uint8_t, S>& buf) {
+uint16_t Comms_CRC::compute_crc(const std::span<uint8_t, std::dynamic_extent> buf) {
 	//initializing the CRC value with the appropriate seed
 	uint16_t crc = seed;
 
@@ -56,8 +55,7 @@ uint16_t Comms_CRC::compute_crc(std::array<uint8_t, S>& buf) {
 	return crc;
 }
 
-template<size_t S>
-bool Comms_CRC::validate_crc(std::array<uint8_t, S>& buf) {
+bool Comms_CRC::validate_crc(const std::span<uint8_t, std::dynamic_extent> buf) {
 	//crc validation just involves running the CRC back through the CRC computation algorithm
 	uint16_t pre_crc = compute_crc(buf);
 
@@ -67,6 +65,5 @@ bool Comms_CRC::validate_crc(std::array<uint8_t, S>& buf) {
 		return false;
 	return true; //CRC computation should be zero
 }
-
 
 

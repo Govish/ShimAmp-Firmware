@@ -16,7 +16,7 @@
 #define COMMS_APP_COMMS_CRC_H_
 
 #include <stddef.h> //for size_t
-#include <array> //for array
+#include <span> //for span
 
 extern "C" {
 	#include "stm32g474xx.h" //for uint16_t
@@ -28,11 +28,9 @@ class Comms_CRC {
 public:
 	Comms_CRC(const uint16_t _poly, const uint16_t _seed, const uint16_t _xor_out);
 
-	template<size_t S> //operate this on variable sized arrays; do this in a cpp way :P
-	uint16_t compute_crc(std::array<uint8_t, S>& buf);
-
-	template<size_t S> //operate this on variable sized arrays; do this in a cpp way :P
-	bool validate_crc(std::array<uint8_t, S>& buf);
+	//provide a c++ style interface to compute and validate a CRC
+	uint16_t compute_crc(const std::span<uint8_t, std::dynamic_extent> buf);
+	bool validate_crc(const std::span<uint8_t, std::dynamic_extent> buf);
 
 private:
 	const uint16_t polynomial; //actual CRC polynomial we'll compute with
