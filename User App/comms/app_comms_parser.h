@@ -13,7 +13,7 @@
  *   [0]		ID			0x0 - 0xFF		Node Address
  *   [1]		MTYPE		0x0 - 0x0F		Message type
  *   [2]		PLEN		0x1 - 0xF8		Message Payload Length
- *   [3]		PL0			0x0 - 0xFF		Payload byte 0
+ *   [3]		PL0			0x0 - 0xFF		Payload byte 0, typically command or request code
  *   [4]		PL1			0x0 - 0xFF		Payload byte 1
  *    ...
  *   [n-2]		PLn			0x0 - 0xFF		Payload byte n
@@ -65,44 +65,22 @@
  *   		crc xor_out: 0x0000 (i.e. don't need to xor the CRC result
  *
  *
- *
- *  On the Encode side:
- *
- *  On the Decode side:
- *
- *  Generally implement the parser as a STATIC class that has:
- *		- `parse_buffer()` function
- *			- takes in a buffer and its length as a parameter
- *
- *
- *
- *			- checks the CRC of the packet
- *			- looks at the ID of the packet
- *			- checks to see whether it's a HOST_COMMAND_ALL_DEVICES packet
- *
- *			- if the packet is not a HOST_COMMAND_ALL_DEVICES packet
- *
- *			- RETURN int16_t meaning size of the response packet, or -1 if something went wrong
- *
- *		- `attach_command_callback()` function
- *
- *		- 'attach_request_callback()` function
- *
  */
 
 #ifndef COMMS_APP_COMMS_PARSER_H_
 #define COMMS_APP_COMMS_PARSER_H_
 
 #include <stddef.h> //for size_t
-#include <array> //for arrays around the class
+#include <span> //for stl interfaces
 #include <utility> //for pair (for responses from command and request handlers
 
 extern "C" {
 	#include "stm32g474xx.h" //for uint8_t type
 }
 
-#include <span> //for stl interfaces
+
 #include "app_comms_cobs.h" //for message lengths and such
+#include "app_comms_crc.h" //so we can hang onto a CRC instance
 
 class Parser {
 public:
@@ -123,16 +101,25 @@ public:
 	//enum type for not-acknowledge responses
 	typedef enum {
 		NACK_ERROR_UNKNOWN = 				(uint8_t)0x00,
-		NACK_ERROR_INVALID_CRC = 			(uint8_t)0x01,
-		NACK_ERROR_INVALID_MSG_SIZE = 		(uint8_t)0x02,
-		NACK_ERROR_UNKNONW_COMMAND_CODE = 	(uint8_t)0x03,
-		NACK_ERROR_UNKNONW_REQUEST_CODE = 	(uint8_t)0x04,
-		NACK_ERROR_COMMAND_OUT_OF_RANGE = 	(uint8_t)0x05,
-		NACK_ERROR_COMMAND_EXEC_FAILED = 	(uint8_t)0x06,
-		NACK_ERROR_SYSTEM_BUSY = 			(uint8_t)0x07,
+		NACK_ERROR_INTERNAL_FW = 			(uint8_t)0x01,
+		NACK_ERROR_INVALID_CRC = 			(uint8_t)0x02,
+		NACK_ERROR_UNKNOWN_MSG_TYPE = 		(uint8_t)0x03,
+		NACK_ERROR_INVALID_MSG_SIZE = 		(uint8_t)0x04,
+		NACK_ERROR_UNKNOWN_COMMAND_CODE = 	(uint8_t)0x05,
+		NACK_ERROR_UNKNOWN_REQUEST_CODE = 	(uint8_t)0x06,
+		NACK_ERROR_COMMAND_OUT_OF_RANGE = 	(uint8_t)0x07,
+		NACK_ERROR_COMMAND_EXEC_FAILED = 	(uint8_t)0x08,
+		NACK_ERROR_SYSTEM_BUSY = 			(uint8_t)0x09,
 	} NACKErrorTypes_t;
 
-	static constexpr size_t PACKET_OVERHEAD = 5; //bytes that aren't payload: ID, MTYPE, PLEN, CRCh, CRCl
+	static constexpr size_t ID_INDEX = 0;
+	static constexpr size_t MTYPE_INDEX = 1;
+	static constexpr size_t PLEN_INDEX = 2;
+	static constexpr size_t PACKET_VITALS_OVERHEAD = 3; //these fields above occupy a total of 3 bytes
+
+	static constexpr size_t PL_START_INDEX = 3;
+
+	static constexpr size_t PACKET_OVERHEAD = PACKET_VITALS_OVERHEAD + 2; //bytes that aren't payload: ID, MTYPE, PLEN, CRCh, CRCl
 	static constexpr size_t MAX_PAYLOAD_LENGTH = Cobs::MSG_MAX_UNENCODED_LENGTH - PACKET_OVERHEAD; //maximum length of a packet payload
 	static constexpr size_t MIN_PAYLOAD_LENGTH = 1; //every packet has to have at least a single payload byte
 
@@ -148,16 +135,6 @@ public:
 
 	//###################### TYPES FOR THE COMMAND/REQUEST HANDLING FUNCTIONS ####################
 
-	//comamnd and request handling functions must respond with one of these types
-	typedef enum {
-		HANDLER_RESPONSE_COMMAND_ACK, //the command handler function is responding with an acknowledge of the instructed command; response payload set accordingly
-		HANDLER_RESPONSE_REQUEST_RESPONSE, //the response handler function is responding with the requested data
-		HANDLER_RESPONSE_NACK_RANGE, //the command handler received a bad command--command out of range
-		HANDLER_RESPONSE_NACK_EXEC_FAIL, //the command handler couldn't execute the command for whatever reason
-		HANDLER_RESPONSE_NACK_SYS_BUSY, //the command/request handler couldn't execute the command bc the system was busy
-		HANDLER_RESPONSE_NACK_UNKNOWN, //the command/request handler ran into an unknown error
-	} ParserHandlerResponse_t;
-
 	//function signature of a command handler
 	//takes as arguments:
 		//--span peeping into the payload of the rx packet; truncated to the valid size
@@ -165,33 +142,47 @@ public:
 	//reponds with a pair
 		//first element is what kinda response to send
 		//second element is the payload size
-	typedef std::pair<ParserHandlerResponse_t, size_t> (*command_handler_t)(	const std::span<uint8_t, std::dynamic_extent> rx_payload ,
-																				std::span<uint8_t, std::dynamic_extent> tx_payload);
+	//if there is an error in processing the command; the command handler is responsible for NACKing and putting a correct NACK reason in the payload
+	//NACK types can be found by including this header file in any command handler
+	typedef std::pair<MessageType_t, size_t> (*command_handler_t)(	const std::span<uint8_t, std::dynamic_extent> rx_payload,
+																	std::span<uint8_t, std::dynamic_extent> tx_payload);
 
 	//function signature of a request handler
 	//as of now, is the same as a command_handler, but separating for future-proofing
-	typedef std::pair<ParserHandlerResponse_t, size_t> (*request_handler_t)(	const std::span<uint8_t, std::dynamic_extent> rx_payload ,
-																				std::span<uint8_t, std::dynamic_extent> tx_payload);
+	typedef std::pair<MessageType_t, size_t> (*request_handler_t)(	const std::span<uint8_t, std::dynamic_extent> rx_payload,
+																	std::span<uint8_t, std::dynamic_extent> tx_payload);
 
 	//==============================================================================================================
 
+	Parser(Comms_CRC& _crc_comp);
+
+	//set the device address on the multi-drop serial bus
+	//can't be passed in via constructor since this is read from dip switches during boot
+	void set_address(uint8_t address);
+
 	//continuing the `std::span` interface used in other communication subsystems
 	//provides a scalable, c++ style way to interface with the parser
-	static int16_t parse_buffer(	const std::span<uint8_t, std::dynamic_extent> rx_packet,
+	//returns how many bytes our response packet contains, if any
+	int16_t parse_buffer(	const std::span<uint8_t, std::dynamic_extent> rx_packet,
 									std::span<uint8_t, std::dynamic_extent> tx_packet);
 
 	//attach command and request handlers to particular command and request codes
-	static void attach_command_cb(const size_t command_code, const command_handler_t command_handler);
-	static void attach_request_cb(const size_t request_code, const request_handler_t request_handler);
+	void attach_command_cb(const size_t command_code, const command_handler_t command_handler);
+	void attach_request_cb(const size_t request_code, const request_handler_t request_handler);
 
 private:
+	//know the address of the particular device on the
+	size_t device_address = -1;
+
+	//have access to a crc instance to compute and validate our CRCs
+	//owned and initialized by a higher level class
+	Comms_CRC crc_comp;
 
 	//have an array of callback functions that map a command/request code to a firmware callback function
 	//technically not the most memory efficiency way to map command/requests to firmware functions
 	//but I think this is pretty elegant, and we have a decent amount of memory to access
-	//TODO: both of these will be initialized to null pointers
-	static command_handler_t command_handler_map[COMMAND_CODE_MAX];
-	static request_handler_t request_handler_map[REQUEST_CODE_MAX];
+	command_handler_t command_handler_map[COMMAND_CODE_MAX] = {NULL};
+	request_handler_t request_handler_map[REQUEST_CODE_MAX] = {NULL};
 
 };
 
