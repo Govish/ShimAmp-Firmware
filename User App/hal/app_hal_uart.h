@@ -24,6 +24,8 @@
  *	Additionally, in all the code examples I've seen, `std::span`s are passed by value rather than reference--just wanted to note that up here
  *
  *	A really cool byproduct of this is that std::arrays can automatically cast to a `std::span` increasing code readability and concise-ness
+ *
+ *	TODO maybe: Find a way to connect to the RX FIFO full interrupt and try to detect overruns or any time the FIFO gets FULL
  */
 
 #ifndef HAL_APP_HAL_UART_H_
@@ -53,7 +55,7 @@ public:
 
 	//===============================================================================================================
 
-	UART(	UART_Hardware_Channel* const _hardware, const uint8_t _START_OF_FRAME, const uint8_t _END_OF_FRAME,
+	UART(	UART_Hardware_Channel& _hardware, const uint8_t _START_OF_FRAME, const uint8_t _END_OF_FRAME,
 			std::span<uint8_t, std::dynamic_extent> _txbuf, std::span<uint8_t, std::dynamic_extent> _rxbuf);
 	void init(); //initialize the uart peripheral
 
@@ -72,8 +74,8 @@ public:
 	void __attribute__((optimize("O3"))) RX_interrupt_handler();
 	void __attribute__((optimize("O3"))) error_handler();
 private:
-	//maintain details relevant to the hardware channel (the class owns this, not the instance)
-	UART_Hardware_Channel* const hardware;
+	//reference details relevant to the hardware channel (the class owns this, not the instance)
+	UART_Hardware_Channel& hardware;
 
 	//maintain a definition of start-of-frame and end-of-frame characters
 	const uint8_t START_OF_FRAME;

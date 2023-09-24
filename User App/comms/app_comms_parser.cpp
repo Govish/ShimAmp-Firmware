@@ -12,7 +12,7 @@
 //simple constructor that just hangs onto our CRC calculation unit
 Parser::Parser(Comms_CRC& _crc_comp): crc_comp(_crc_comp) {}
 
-int16_t Parser::parse_buffer(	const std::span<uint8_t, std::dynamic_extent> rx_packet,
+size_t Parser::parse_buffer(	const std::span<uint8_t, std::dynamic_extent> rx_packet,
 								std::span<uint8_t, std::dynamic_extent> tx_packet)
 {
 	//sanity check that we can even pack a failure message into the tx_buffer
@@ -114,7 +114,7 @@ int16_t Parser::parse_buffer(	const std::span<uint8_t, std::dynamic_extent> rx_p
 
 	//compute the CRC of the message accordingly
 	uint16_t tx_crc = crc_comp.compute_crc(tx_packet.subspan(0, response_total_length));
-	//put the bytes of the crc at the end of the message, high-byte first
+	//put the bytes of the crc at the end of the message, high-byte first (Big Endian)
 	tx_packet[response_plen + PACKET_VITALS_OVERHEAD - 2] = (uint8_t)(0xFF & (tx_crc >> 8));
 	tx_packet[response_plen + PACKET_VITALS_OVERHEAD - 1] = (uint8_t)(0xFF & (tx_crc));
 

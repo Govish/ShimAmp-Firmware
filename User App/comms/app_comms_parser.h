@@ -7,6 +7,12 @@
  *  This is the subsystem that converts between packets and messages/commands from the rest of the firmware
  *  It will read packets, execute appropriate commands located in other parts of firmware, and create a response packet
  *
+ *	MESSAGES WILL BE SENT BIG ENDIAN, i.e. MSbyte first; HOWEVER, since comms will be happening over UART, expect LSbit first communications!
+ *	This is done to ensure we don't have to do anything funky with our UART communications
+ *	specifically, for uint32_t, 0xDEADBEEF, the bytes should be sent in the following order:
+ *	first 		--->		last
+ *	[0xDE]	[0xAD]	[0xBE]	[0xEF]
+ *
  *  A message packet is formatted as the following (proper specification doc to come):
  *
  *  Index	Abbreviation	Value Range		Description
@@ -24,7 +30,7 @@
  *   Some notes on the specific bytes of the message:
  *   	- ID
  *   		... is the ID of the node; typically configured via dip switches on the board
- *   		as of now the procol can support 256 nodes
+ *   		as of now the protocol can support 256 nodes
  *
  *   	- MTYPE
  *   		...top 5 bits of this message are RESERVED - will either expand this to more ID bits or other message types (or who knows that's why they're reserved i guess)
@@ -64,6 +70,18 @@
  *   		crc seed: 0x1D0F
  *   		crc xor_out: 0x0000 (i.e. don't need to xor the CRC result
  *
+ *
+ *   Response messages will have the exact same "vitals", i.e.
+ *    - SOF
+ *    - DEVICE ADDRESS
+ *    - PAYLOAD LENGTH
+ *    	.... [payload] ....
+ *    - CRCh
+ *    - CRCl
+ *
+ *	If properly ackowledged,
+ *		- The payload of all RESPONSE messages will have the REQUEST CODE at payload[0] and the rest of the payload message following appropriately (payload[1:n-1]) for n payload bytes
+ *		- The payload of all COMMAND messages will have the COMMAND CODE at payload[0] and that's it
  *
  */
 
@@ -146,11 +164,21 @@ public:
 	//NACK types can be found by including this header file in any command handler
 	typedef std::pair<MessageType_t, size_t> (*command_handler_t)(	const std::span<uint8_t, std::dynamic_extent> rx_payload,
 																	std::span<uint8_t, std::dynamic_extent> tx_payload);
+	//additionally define the function signature in non-pointer form
+	typedef std::pair<MessageType_t, size_t> command_handler_sig_t(	const std::span<uint8_t, std::dynamic_extent> rx_payload,
+																	std::span<uint8_t, std::dynamic_extent> tx_payload);
 
 	//function signature of a request handler
 	//as of now, is the same as a command_handler, but separating for future-proofing
 	typedef std::pair<MessageType_t, size_t> (*request_handler_t)(	const std::span<uint8_t, std::dynamic_extent> rx_payload,
 																	std::span<uint8_t, std::dynamic_extent> tx_payload);
+	typedef std::pair<MessageType_t, size_t> request_handler_sig_t(	const std::span<uint8_t, std::dynamic_extent> rx_payload,
+																	std::span<uint8_t, std::dynamic_extent> tx_payload);
+
+	//typedef'ing tuples that describe how a particular handler should be mapped to its index
+	//useful when batch initializing a bunch of command and request handlers from a static class
+	typedef std::pair<size_t, command_handler_t> command_mapping_t;
+	typedef std::pair<size_t, request_handler_t> request_mapping_t;
 
 	//==============================================================================================================
 
@@ -163,8 +191,8 @@ public:
 	//continuing the `std::span` interface used in other communication subsystems
 	//provides a scalable, c++ style way to interface with the parser
 	//returns how many bytes our response packet contains, if any
-	int16_t parse_buffer(	const std::span<uint8_t, std::dynamic_extent> rx_packet,
-									std::span<uint8_t, std::dynamic_extent> tx_packet);
+	size_t parse_buffer(	const std::span<uint8_t, std::dynamic_extent> rx_packet,
+							std::span<uint8_t, std::dynamic_extent> tx_packet);
 
 	//attach command and request handlers to particular command and request codes
 	void attach_command_cb(const size_t command_code, const command_handler_t command_handler);

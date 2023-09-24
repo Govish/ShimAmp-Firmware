@@ -51,16 +51,19 @@ public:
 	static const uint8_t CHAR_START_OF_FRAME = 0xFF;
 	static const uint8_t CHAR_END_OF_FRAME = 0x00;
 
+	//empty constructor, don't need to do anything really
+	Cobs();
+
 	//pass the unencoded input via a span
 	//and dump the encoded output into the memory location pointed by the span
 	//return length of the encoded message if encode successful, -1 if not
-	static int16_t encode(	const std::span<uint8_t, std::dynamic_extent> input_unencoded,
+	int16_t encode(	const std::span<uint8_t, std::dynamic_extent> input_unencoded,
 							std::span<uint8_t, std::dynamic_extent> output_encoded);
 
 	//pass the encoded input via a span
 	//and dump the decoded message into the memory location pointed by the span
 	//return length of the decoded message if decode successful, -1 if not
-	static int16_t decode(	const std::span<uint8_t, std::dynamic_extent> input_encoded,
+	int16_t decode(	const std::span<uint8_t, std::dynamic_extent> input_encoded,
 							std::span<uint8_t, std::dynamic_extent> output_decoded);
 
 };

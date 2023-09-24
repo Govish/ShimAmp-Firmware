@@ -14,6 +14,9 @@
 #include <app_comms_cobs.h>
 #include <string.h> //for memcpy
 
+//empty constructor
+Cobs::Cobs() {}
+
 int16_t Cobs::encode(	const std::span<uint8_t, std::dynamic_extent> input_unencoded,
 						std::span<uint8_t, std::dynamic_extent> output_encoded)
 {

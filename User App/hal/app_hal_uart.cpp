@@ -15,21 +15,21 @@ UART::UART_Hardware_Channel UART::LPUART = {&hlpuart1, MX_LPUART1_UART_Init, NUL
 
 //===================================================================================
 
-UART::UART(	UART_Hardware_Channel* const _hardware, const uint8_t _START_OF_FRAME, const uint8_t _END_OF_FRAME,
+UART::UART(	UART_Hardware_Channel& _hardware, const uint8_t _START_OF_FRAME, const uint8_t _END_OF_FRAME,
 			std::span<uint8_t, std::dynamic_extent> _txbuf, std::span<uint8_t, std::dynamic_extent> _rxbuf):
 	hardware(_hardware), START_OF_FRAME(_START_OF_FRAME), END_OF_FRAME(_END_OF_FRAME), txbuf(_txbuf), rxbuf(_rxbuf)
 {
 	//point the hardware structure to the particular firmware instance
-	hardware->instance = this;
+	hardware.instance = this;
 }
 
 void UART::init() {
 	//call the appropriate initialization function
 	//this is done by cubeMX
-	hardware->init_func();
+	hardware.init_func();
 
 	//start listening for received packets over interrupt
-	HAL_UART_Receive_IT(hardware->huart, &received_char, 1);
+	HAL_UART_Receive_IT(hardware.huart, &received_char, 1);
 }
 
 void UART::transmit(const std::span<uint8_t, std::dynamic_extent> bytes_to_tx) {
@@ -37,13 +37,13 @@ void UART::transmit(const std::span<uint8_t, std::dynamic_extent> bytes_to_tx) {
 	if(bytes_to_tx.size() > txbuf.size()) return;
 
 	//only copy over when the previous transmit has finished
-	while(hardware->huart->gState != HAL_UART_STATE_READY); //wait for the UART to be ready for transmit
+	while(hardware.huart->gState != HAL_UART_STATE_READY); //wait for the UART to be ready for transmit
 
 	//copy over the message using stl conventions
 	std::copy(bytes_to_tx.begin(), bytes_to_tx.end(), txbuf.begin());
 
 	//fire off a transmit over DMA with the amount of bytes corresponding to the input message
-	HAL_UART_Transmit_DMA(hardware->huart, txbuf.data(), (uint16_t)bytes_to_tx.size());
+	HAL_UART_Transmit_DMA(hardware.huart, txbuf.data(), (uint16_t)bytes_to_tx.size());
 }
 
 size_t UART::get_packet(std::span<uint8_t, std::dynamic_extent> rx_packet) {
@@ -70,8 +70,8 @@ size_t UART::get_packet(std::span<uint8_t, std::dynamic_extent> rx_packet) {
 }
 
 void UART::attach_uart_error_callback(const callback_function_t _err_cb) { this->err_cb = _err_cb; }
-bool UART::ready_to_send() { return hardware->huart->gState == HAL_UART_STATE_READY; }
-bool UART::uart_ok() { return HAL_UART_GetError(hardware->huart) == HAL_UART_ERROR_NONE; }
+bool UART::ready_to_send() { return hardware.huart->gState == HAL_UART_STATE_READY; }
+bool UART::uart_ok() { return HAL_UART_GetError(hardware.huart) == HAL_UART_ERROR_NONE; }
 
 void UART::RX_interrupt_handler() {
 	//we've received a packet and we're waiting for the main thread to process it
@@ -111,7 +111,7 @@ void UART::RX_interrupt_handler() {
 	}
 
 	//listen for more bytes over UART
-	HAL_UART_Receive_IT(hardware->huart, &received_char, 1);
+	HAL_UART_Receive_IT(hardware.huart, &received_char, 1);
 }
 
 //just run the error callback when the error handler is invoked
