@@ -7,6 +7,8 @@
 
 #include "app_utils.h"
 
+#include <bit> //for bit_cast
+
 //=========================================== BYTE PACKING/UNPACKING ===========================================
 
 //pack a uint32_t value in big endian order

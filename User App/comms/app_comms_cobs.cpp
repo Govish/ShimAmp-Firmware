@@ -65,7 +65,7 @@ int16_t Cobs::encode(	const std::span<uint8_t, std::dynamic_extent> input_unenco
 	output_encoded[1] = next_sof_char_index - 1; //subtracting 1 because we're placing this at the first index
 
 	//at index [2], point to the first EOF char we see in our message
-	output_encoded[2] = next_eof_char_index - 1; //subtracting 1 because we're placing this at the first index
+	output_encoded[2] = next_eof_char_index - 2; //subtracting 2 because we're placing this at the second index
 
 	//return the size of our encoded array; consistent overhead means this is just a fixed amount smaller than the unencoded size
 	return (int16_t)output_length;

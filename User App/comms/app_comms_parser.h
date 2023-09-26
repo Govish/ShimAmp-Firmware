@@ -133,7 +133,8 @@ public:
 	static constexpr size_t ID_INDEX = 0;
 	static constexpr size_t MTYPE_INDEX = 1;
 	static constexpr size_t PLEN_INDEX = 2;
-	static constexpr size_t PACKET_VITALS_OVERHEAD = 3; //these fields above occupy a total of 3 bytes
+	static constexpr size_t PACKET_PREFIX_OVERHEAD = 3; //these fields above occupy a total of 3 bytes
+	static constexpr size_t PACKET_VITALS_OVERHEAD = PACKET_PREFIX_OVERHEAD + 2; //CRC takes 2 additional bytes
 
 	static constexpr size_t PL_START_INDEX = 3;
 

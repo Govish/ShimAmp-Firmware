@@ -61,6 +61,8 @@ inline std::span<const T, std::dynamic_extent> spn(const std::array<T, len>& arr
  * So far, I've come across `reinterpret_cast`, using unions, and memcpy.
  *
  * I'm gonna try the `reinterpret_cast` technique due to its performance and canonically c++ syntax, but will revisit this implementation if promises arise
+ * NOTE: apparently the modern C++20 way to do this is to use `bit_cast<>`--this should guarantee defined behavior across compilers with reasonable performance
+ * However, STM32CubeIDE doesn't support C++20 just yet--will table this change for the future [TODO]
  *
  * Additionally, I'm gonna avoid the use of std::strings in the code generally and encode everything as a character array
  * This should jive a little better with fixed-sized data structures and general memory safety of encoding/packing operations done throughout code

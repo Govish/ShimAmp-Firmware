@@ -43,7 +43,7 @@ private:
 	static const uint8_t the_test_byte = (uint8_t)0xAA;
 	static const uint32_t the_test_uint32 = (uint32_t)0xFFABCD00; //make sure to test FF and 00 encoding is correct
 	static const int32_t the_test_int32 = (int32_t)(-31415);
-	static constexpr float the_test_float = 13.37f;
+	static constexpr float the_test_float = 123.25f;
 	static constexpr std::array the_test_string = s2a("Congrats! You decoded this message correctly!\r\n"); //store as array to make encoding easy
 
 	static constexpr std::array<Parser::request_mapping_t, 5> REQUEST_HANDLERS = {

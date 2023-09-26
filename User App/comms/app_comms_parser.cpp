@@ -110,17 +110,17 @@ size_t Parser::parse_buffer(	const std::span<uint8_t, std::dynamic_extent> rx_pa
 	tx_packet[ID_INDEX] = dest_id; //message is coming from this device address
 	tx_packet[MTYPE_INDEX] = (uint8_t)response_type; //we're sending this kinda message
 	tx_packet[PLEN_INDEX] = (uint8_t)response_plen; //and the payload contains this many bytes
-	size_t response_total_length = response_plen + PACKET_VITALS_OVERHEAD;
+	size_t response_length_with_prefix = response_plen + PACKET_PREFIX_OVERHEAD;
 
 	//compute the CRC of the message accordingly
-	uint16_t tx_crc = crc_comp.compute_crc(tx_packet.subspan(0, response_total_length));
+	uint16_t tx_crc = crc_comp.compute_crc(tx_packet.subspan(0, response_length_with_prefix));
 	//put the bytes of the crc at the end of the message, high-byte first (Big Endian)
-	tx_packet[response_plen + PACKET_VITALS_OVERHEAD - 2] = (uint8_t)(0xFF & (tx_crc >> 8));
-	tx_packet[response_plen + PACKET_VITALS_OVERHEAD - 1] = (uint8_t)(0xFF & (tx_crc));
+	tx_packet[response_length_with_prefix] = (uint8_t)(0xFF & (tx_crc >> 8));
+	tx_packet[response_length_with_prefix + 1] = (uint8_t)(0xFF & (tx_crc));
 
 	//return the length of our response; but don't respond in the case of ALL_DEVICES command
 	if(message_code == (uint8_t)HOST_COMMAND_ALL_DEVICES) return 0;
-	return (int16_t)response_total_length;
+	return (int16_t)response_plen + PACKET_VITALS_OVERHEAD;
 }
 
 //quick method to initialize the address of the device
