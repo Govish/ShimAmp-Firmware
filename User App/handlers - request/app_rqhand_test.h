@@ -15,6 +15,7 @@
 //to get request handler types
 #include "app_comms_parser.h"
 #include "app_rqhand_mapping.h" //to get the mapping for different request handlers
+#include "app_cmhand_test.h" //so we can make it a friend class
 
 #include <string> //need this for the test string
 #include <array> //to hold an stl array
@@ -23,8 +24,8 @@
 #include "app_utils.h" //to initialize std::array with string literal
 
 class Test_Request_Handlers {
+	friend class Test_Command_Handlers; //so we can share test sequences with this
 public:
-
 	static Parser::request_handler_sig_t test_byte;
 	static Parser::request_handler_sig_t test_uint32;
 	static Parser::request_handler_sig_t test_int32;

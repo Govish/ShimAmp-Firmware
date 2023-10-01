@@ -12,6 +12,8 @@
 #include "app_rqhand_test.h"
 
 //================ COMMAND HANDLER INCLUDES ==============
+#include "app_cmhand_test.h"
+
 
 //Constructor is private for the singleton class
 Comms_Exec_Subsystem::Comms_Exec_Subsystem():
@@ -31,8 +33,12 @@ void Comms_Exec_Subsystem::init(uint8_t device_address) {
 	parser.set_address(device_address);
 
 	//TODO: register all command and request callbacks here
-	for(Parser::request_mapping_t rq_handler : Test_Request_Handlers::request_handlers()) {
-		parser.attach_request_cb(rq_handler.first, rq_handler.second);
+	for(auto& [rq_code, rq_callback] : Test_Request_Handlers::request_handlers()) {
+		parser.attach_request_cb(rq_code, rq_callback);
+	}
+
+	for(auto& [cm_code, cm_callback] : Test_Command_Handlers::command_handlers()) {
+		parser.attach_command_cb(cm_code, cm_callback);
 	}
 }
 

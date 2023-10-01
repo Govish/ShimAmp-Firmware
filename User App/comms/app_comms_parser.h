@@ -74,6 +74,7 @@
  *   Response messages will have the exact same "vitals", i.e.
  *    - SOF
  *    - DEVICE ADDRESS
+ *    - MESSAGE TYPE
  *    - PAYLOAD LENGTH
  *    	.... [payload] ....
  *    - CRCh

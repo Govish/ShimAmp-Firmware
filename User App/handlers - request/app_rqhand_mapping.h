@@ -11,12 +11,19 @@
 #ifndef HANDLERS___REQUEST_APP_RQHAND_MAPPING_H_
 #define HANDLERS___REQUEST_APP_RQHAND_MAPPING_H_
 
-enum RQ_Mapping {
-	TEST_BYTE 		= (size_t)0x00,
-	TEST_UINT32 	= (size_t)0x01,
-	TEST_INT32 		= (size_t)0x02,
-	TEST_FLOAT 		= (size_t)0x03,
-	TEST_STRING 	= (size_t)0x04,
-};
+extern "C" {
+	#include "stm32g474xx.h" //for uint8_t
+}
+
+//so we don't pollute our global namespace, but can still access the enum in a "sensical" way
+namespace RQ_Mapping {
+	enum RQ_Mapping {
+		TEST_BYTE 		= (uint8_t)0x00,
+		TEST_UINT32 	= (uint8_t)0x01,
+		TEST_INT32 		= (uint8_t)0x02,
+		TEST_FLOAT 		= (uint8_t)0x03,
+		TEST_STRING 	= (uint8_t)0x04,
+	};
+}
 
 #endif /* HANDLERS___REQUEST_APP_RQHAND_MAPPING_H_ */
