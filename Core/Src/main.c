@@ -95,11 +95,11 @@ int main(void)
   /* USER CODE BEGIN 2 */
   //call the user app initialization routines
   app_init();
-  HAL_HRTIM_SimpleOnePulseStart(&hhrtim1, HRTIM_TIMERINDEX_TIMER_A, HRTIM_OUTPUT_TA1);
-  HAL_HRTIM_SimpleOnePulseStart(&hhrtim1, HRTIM_TIMERINDEX_TIMER_A, HRTIM_OUTPUT_TA2);
-  HAL_HRTIM_SimpleOnePulseStart(&hhrtim1, HRTIM_TIMERINDEX_TIMER_B, HRTIM_OUTPUT_TB1);
-  HAL_HRTIM_SimpleOnePulseStart(&hhrtim1, HRTIM_TIMERINDEX_TIMER_B, HRTIM_OUTPUT_TB2);
-  HAL_HRTIM_SimpleBaseStart(&hhrtim1, HRTIM_TIMERINDEX_MASTER);
+//  HAL_HRTIM_SimpleOnePulseStart(&hhrtim1, HRTIM_TIMERINDEX_TIMER_A, HRTIM_OUTPUT_TA1);
+//  HAL_HRTIM_SimpleOnePulseStart(&hhrtim1, HRTIM_TIMERINDEX_TIMER_A, HRTIM_OUTPUT_TA2);
+//  HAL_HRTIM_SimpleOnePulseStart(&hhrtim1, HRTIM_TIMERINDEX_TIMER_B, HRTIM_OUTPUT_TB1);
+//  HAL_HRTIM_SimpleOnePulseStart(&hhrtim1, HRTIM_TIMERINDEX_TIMER_B, HRTIM_OUTPUT_TB2);
+//  HAL_HRTIM_SimpleBaseStart(&hhrtim1, HRTIM_TIMERINDEX_MASTER);
   /* USER CODE END 2 */
 
   /* Infinite loop */

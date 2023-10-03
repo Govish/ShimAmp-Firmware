@@ -73,6 +73,6 @@
     <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_TYPES">
         <listEntry value="4"/>
     </listAttribute>
-    <stringAttribute key="org.eclipse.dsf.launch.MEMORY_BLOCKS" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalone=&quot;no&quot;?&gt;&lt;memoryBlockExpressionList context=&quot;reserved-for-future-use&quot;&gt;&lt;gdbmemoryBlockExpression address=&quot;537001660&quot; label=&quot;&amp;amp;(((uint8_t)(*(((((this)-&amp;gt;buffers)).rxbuf)))))&quot;/&gt;&lt;/memoryBlockExpressionList&gt;"/>
+    <stringAttribute key="org.eclipse.dsf.launch.MEMORY_BLOCKS" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalone=&quot;no&quot;?&gt;&lt;memoryBlockExpressionList context=&quot;reserved-for-future-use&quot;&gt;&lt;gdbmemoryBlockExpression address=&quot;537001660&quot; label=&quot;&amp;amp;(((uint8_t)(*(((((this)-&amp;gt;buffers)).rxbuf)))))&quot;/&gt;&lt;gdbmemoryBlockExpression address=&quot;1073834268&quot; label=&quot;&amp;amp;(((((((this)-&amp;gt;hrtim_handle))-&amp;gt;Instance)-&amp;gt;sTimerxRegs[1]).CMP1xR))&quot;/&gt;&lt;gdbmemoryBlockExpression address=&quot;1073834240&quot; label=&quot;&amp;amp;(((((((this)-&amp;gt;hrtim_handle))-&amp;gt;Instance)-&amp;gt;sTimerxRegs[1]).TIMxCR))&quot;/&gt;&lt;/memoryBlockExpressionList&gt;"/>
     <stringAttribute key="process_factory_id" value="com.st.stm32cube.ide.mcu.debug.launch.HardwareDebugProcessFactory"/>
 </launchConfiguration>

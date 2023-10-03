@@ -12,48 +12,76 @@
 
 extern "C" {
 	#include "stm32g474xx.h" //for types
+	//#include "stm32g4xx_hal_hrtim.h" //for the hrtim handle, caused build errors for whatever reason
 	#include "hrtim.h"
 }
 
-#include "app_hal_int_utils.h" //for callback definitions
-
 class HRPWM {
+public:
 
-	struct HRPWM_Hardware_Channel {
-		HRTIM_HandleTypeDef* const hrtim;
-		const callback_function_t init_func;
-		HRPWM* instance; //points to the firmware instance corresponding to this hardware
+	enum class Compare_Channel_Mapping {
+		COMPARE_CHANNEL_1,
+		COMPARE_CHANNEL_3,
 	};
 
-	static HRPWM_Hardware_Channel CHANNEL_0;
-	static HRPWM_Hardware_Channel CHANNEL_1;
-	static HRPWM_Hardware_Channel CHANNEL_2;
-	static HRPWM_Hardware_Channel CHANNEL_3;
+	//======================================= HARDWARE REFERENCES TO EACH PWM CHANNEL ======================================
+	struct HRPWM_Hardware_Channel {
+		const size_t TIMER_INDEX; //use this to index into HAL functions
+		const Compare_Channel_Mapping COMPARE_CHANNEL;
+		const uint32_t OUTPUT_CONTROL_BITMASK; //write this value to OENR to enable the particular channel output
+	};
 
+	static HRPWM_Hardware_Channel CHANNEL_A1_PA8;
+	static HRPWM_Hardware_Channel CHANNEL_A2_PA9;
+	static HRPWM_Hardware_Channel CHANNEL_B1_PA10;
+	static HRPWM_Hardware_Channel CHANNEL_B2_PA11;
 
-public:
+	//======================================= CLASS METHODS ======================================
 	static void DISABLE_ALL();
 	static void ENABLE_ALL();
-	static void SET_PERIOD_ALL();
+	static bool GET_ALL_ENABLED();
+	static bool SET_PERIOD_ALL(uint16_t period); //return true if successful, WILL NOT UPDATE DUTY CYCLES
 	static uint16_t GET_PERIOD(); //master timer period (raw register read basically, no unit conversion)
 	static float GET_FSW(); //switching frequency in Hz
 
 	/*TODO: ADC synchronization and period elapsed callback*/
 
-	HRPWM(); //constructor
+	HRPWM(HRPWM_Hardware_Channel& _channel_hw); //constructor
+
+	//delete copy constructor, and assignment operator
+	//such as to prevent weird hardware conflicts
+	//TODO: can't delete destructor since I need it when accessing HRPWM_Hardware_Channels?
+	HRPWM(HRPWM const&) = delete;
+	void operator=(HRPWM const&) = delete;
+
+	void init(); //need this function in order to force the execution order to be after HAL functions
 	void force_low();
+	void force_high();
 	bool set_duty(float duty); //duty cycle 0-1; bounds checked version, returns true if set successfully
-	void set_duty(uint16_t duty); //faster, non-bounds-checked version of set_duty(float)
+	void set_duty_raw(uint16_t duty); //faster, non-bounds-checked version of set_duty(float)
 	float get_duty();
-	uint16_t get_raw_duty(); //faster version of get_duty; no float conversion
+	uint16_t get_duty_raw(); //faster version of get_duty; no float conversion
 
 private:
-	static bool MASTER_INITIALIZED;
-	static uint16_t period; //period of the master timer that synchronizes all channels
+	//============================== OPERATIONAL CONSTANTS ============================
+	static const uint16_t PWM_MIN_MAX_DUTY = 0x60; //duty cycle can be min <this> or max <period> - <this>
+	static const uint16_t PWM_MIN_PERIOD = 0x100; //might not be strictly this, but constrain to something reasonable
+	static const uint16_t PWM_MAX_PERIOD = 0xFFDF; //maximum value we can load into any counters
+	static constexpr float HRTIM_EFFECTIVE_CLOCK = 170.0e6 * 32.0; //effective clock rate of the high resolution timer
 
-	uint16_t duty; //duty cycle for the particular PWM channel
+	//============================== BITMASK AND REGISTER CONSTANTS ============================
+	static const uint32_t TIMER_ENABLE_MASK = 0x7F0000; //enable/disable all timers with this mask
+	static const uint32_t RESET_MODE = ~(0x18); //reset the channel mode bits
+	static const uint32_t SINGLE_SHOT_RETRIGGERABLE_MODE = 0x10; //bitwise or with channel to put into single shot retriggerable
+
+	//================================ STATIC MEMBERS =================================
+	static const HRTIM_HandleTypeDef* hrtim_handle; //pointer to the hardware
+	static bool MASTER_INITIALIZED; //flag that says whether the HRTIM peripheral has been initialized
+
+	//============================== INSTANCE MEMBERS ============================
+	HRPWM_Hardware_Channel& channel_hw; //connect the instance to a particular piece of hardware
+
 };
-
 
 
 #endif /* HAL_APP_HAL_HRPWM_H_ */
