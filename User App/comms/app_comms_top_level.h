@@ -10,8 +10,6 @@
  *  This class will own all the statically allocated data structures and class instances
  *  Configuration changes to each of the comms systems must take place here
  *
- *	TODO: include all files that define command and request handlers
- *
  */
 
 #ifndef COMMS_APP_COMMS_TOP_LEVEL_H_
@@ -36,22 +34,30 @@ extern "C" {
 class Comms_Exec_Subsystem {
 
 public:
-	//since we want to implement as a singleton, delete the copy constructor and assignment operator
-	//https://stackoverflow.com/questions/1008019/how-do-you-implement-the-singleton-design-pattern
+	//======================================================= CONFIGURATION DETAILS STRUCT =======================================================
+	//following the paradigm of passing pre-instantiated configuration information to the constructor
+	struct Configuration_Details {
+		UART::UART_Hardware_Channel& uart_channel;
+		const uint16_t crc_poly;
+		const uint16_t crc_seed;
+		const uint16_t crc_xor_out;
+	};
+	static Configuration_Details COMMS_EXEC_CONFIG; //our main source of configuration information
+
+	//======================================================= PUBLIC METHODS =======================================================
+
+	//constructor--just takes some general configuration details during instantiation
+	Comms_Exec_Subsystem(Configuration_Details& config_details);
+
+	//delete our copy constructor and asssignment operator to avoid any weird hardware issues
 	Comms_Exec_Subsystem(Comms_Exec_Subsystem const&) = delete;
 	void operator=(Comms_Exec_Subsystem const&) = delete;
-
-	//function to access the singleton
-	static Comms_Exec_Subsystem& get_instance() {
-		static Comms_Exec_Subsystem sys;
-		return sys;
-	}
 
 	//read in the serial device address and initialize the parser with it
 	void init(uint8_t device_address);
 	void loop();
 private:
-	//##### all these objects will be initialized in the constructor of `Comms_Subsystem` #####
+	//##### all these objects will be initialized in the constructor of `Comms_Exec_Subsystem` #####
 
 	//============================= EVERYTHING SERIAL COMMUNICATION ==================================
 	std::array<uint8_t, Cobs::MSG_MAX_ENCODED_LENGTH> serial_tx_buffer; //place for UART to put outgoing serial data
@@ -64,19 +70,12 @@ private:
 	Cobs cobs; //instantiate a cobs instance; nothing to construct really
 
 	//=========================== EVERYTHING CRC COMPUTATION ==============================
-	//CRC-16/AUG-CCITT, common 16-bit CRC parameters
-	const uint16_t crc_poly = 0x1021;
-	const uint16_t crc_seed = 0x1D0F;
-	const uint16_t crc_xor_out = 0x0000;
 	Comms_CRC crc;
 
 	//============================= EVERYTHING PARSER ===========================
 	std::array<uint8_t, Cobs::MSG_MAX_UNENCODED_LENGTH> rx_decoded_packet; //place to put the received packet after decoding
 	std::array<uint8_t, Cobs::MSG_MAX_UNENCODED_LENGTH> tx_unencoded_packet; //place to put the response packet to be transmitted back to host (before encoding)
 	Parser parser;
-
-	//=============================== PRIVATE CONSTRUCTOR FOR SINGLETON ===============================
-	Comms_Exec_Subsystem();
 
 };
 

@@ -31,22 +31,19 @@ public:
 		const uint32_t OUTPUT_CONTROL_BITMASK; //write this value to OENR to enable the particular channel output
 	};
 
-	static HRPWM_Hardware_Channel CHANNEL_A1_PA8;
-	static HRPWM_Hardware_Channel CHANNEL_A2_PA9;
-	static HRPWM_Hardware_Channel CHANNEL_B1_PA10;
-	static HRPWM_Hardware_Channel CHANNEL_B2_PA11;
+	static const HRPWM_Hardware_Channel CHANNEL_A1_PA8;
+	static const HRPWM_Hardware_Channel CHANNEL_A2_PA9;
+	static const HRPWM_Hardware_Channel CHANNEL_B1_PA10;
+	static const HRPWM_Hardware_Channel CHANNEL_B2_PA11;
 
 	//======================================= CLASS METHODS ======================================
-	static void DISABLE_ALL();
-	static void ENABLE_ALL();
 	static bool GET_ALL_ENABLED();
-	static bool SET_PERIOD_ALL(uint16_t period); //return true if successful, WILL NOT UPDATE DUTY CYCLES
-	static uint16_t GET_PERIOD(); //master timer period (raw register read basically, no unit conversion)
+	static bool SET_FSW(float fsw_hz); //set the desired switching frequency in Hz
 	static float GET_FSW(); //switching frequency in Hz
 
 	/*TODO: ADC synchronization and period elapsed callback*/
 
-	HRPWM(HRPWM_Hardware_Channel& _channel_hw); //constructor
+	HRPWM(const HRPWM_Hardware_Channel& _channel_hw); //constructor
 
 	//delete copy constructor, and assignment operator
 	//such as to prevent weird hardware conflicts
@@ -54,7 +51,13 @@ public:
 	HRPWM(HRPWM const&) = delete;
 	void operator=(HRPWM const&) = delete;
 
+	//###### initialization and enable ######
 	void init(); //need this function in order to force the execution order to be after HAL functions
+	void enable(); //enable the particular channel
+	void disable(); //disable the particular channel
+	bool get_enabled(); //return whether the stage is enabled or not
+
+	//###### duty cycle control ######
 	void force_low();
 	void force_high();
 	bool set_duty(float duty); //duty cycle 0-1; bounds checked version, returns true if set successfully
@@ -63,11 +66,19 @@ public:
 	uint16_t get_duty_raw(); //faster version of get_duty; no float conversion
 
 private:
+	//============== quick utility functions ===============
+	static uint16_t GET_PERIOD();
+	static void ENABLE_ALL();
+	static void DISABLE_ALL();
+
 	//============================== OPERATIONAL CONSTANTS ============================
+	static constexpr float HRTIM_EFFECTIVE_CLOCK = 170.0e6 * 32.0; //effective clock rate of the high resolution timer
 	static const uint16_t PWM_MIN_MAX_DUTY = 0x60; //duty cycle can be min <this> or max <period> - <this>
 	static const uint16_t PWM_MIN_PERIOD = 0x100; //might not be strictly this, but constrain to something reasonable
 	static const uint16_t PWM_MAX_PERIOD = 0xFFDF; //maximum value we can load into any counters
-	static constexpr float HRTIM_EFFECTIVE_CLOCK = 170.0e6 * 32.0; //effective clock rate of the high resolution timer
+	static constexpr float FSW_MIN = HRTIM_EFFECTIVE_CLOCK / (float)PWM_MAX_PERIOD;
+	static constexpr float FSW_MAX = HRTIM_EFFECTIVE_CLOCK / (float)PWM_MIN_PERIOD;
+
 
 	//============================== BITMASK AND REGISTER CONSTANTS ============================
 	static const uint32_t TIMER_ENABLE_MASK = 0x7F0000; //enable/disable all timers with this mask
@@ -77,10 +88,11 @@ private:
 	//================================ STATIC MEMBERS =================================
 	static const HRTIM_HandleTypeDef* hrtim_handle; //pointer to the hardware
 	static bool MASTER_INITIALIZED; //flag that says whether the HRTIM peripheral has been initialized
+	static int num_timer_users; //counting semaphore to determine when we can enable/disable our timer
 
 	//============================== INSTANCE MEMBERS ============================
-	HRPWM_Hardware_Channel& channel_hw; //connect the instance to a particular piece of hardware
-
+	const HRPWM_Hardware_Channel& channel_hw; //connect the instance to a particular piece of hardware
+	bool channel_enabled = false;
 };
 
 

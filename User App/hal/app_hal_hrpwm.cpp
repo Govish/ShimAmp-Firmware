@@ -8,58 +8,40 @@
 #include "app_hal_hrpwm.h"
 
 #include <algorithm> //for std::clamp
-
+#include <cmath> //for round
 
 //===================================== STATIC VARIABLE INITIALIZATION ===================================
 const HRTIM_HandleTypeDef* HRPWM::hrtim_handle = &hhrtim1; //point to the hardware instance
 bool HRPWM::MASTER_INITIALIZED = false;
 
 //###### INITIALIZE HARDWARE CHANNEL DEFINITIONS #######
-HRPWM::HRPWM_Hardware_Channel HRPWM::CHANNEL_A1_PA8 = {
+const HRPWM::HRPWM_Hardware_Channel HRPWM::CHANNEL_A1_PA8 = {
 		.TIMER_INDEX = HRTIM_TIMERINDEX_TIMER_A,
 		.COMPARE_CHANNEL = Compare_Channel_Mapping::COMPARE_CHANNEL_1,
 		.OUTPUT_CONTROL_BITMASK = HRTIM_OUTPUT_TA1,
 };
 
-HRPWM::HRPWM_Hardware_Channel HRPWM::CHANNEL_A2_PA9 = {
+const HRPWM::HRPWM_Hardware_Channel HRPWM::CHANNEL_A2_PA9 = {
 		.TIMER_INDEX = HRTIM_TIMERINDEX_TIMER_A,
 		.COMPARE_CHANNEL = Compare_Channel_Mapping::COMPARE_CHANNEL_3,
 		.OUTPUT_CONTROL_BITMASK = HRTIM_OUTPUT_TA2,
 };
 
-HRPWM::HRPWM_Hardware_Channel HRPWM::CHANNEL_B1_PA10 = {
+const HRPWM::HRPWM_Hardware_Channel HRPWM::CHANNEL_B1_PA10 = {
 		.TIMER_INDEX = HRTIM_TIMERINDEX_TIMER_B,
 		.COMPARE_CHANNEL = Compare_Channel_Mapping::COMPARE_CHANNEL_1,
 		.OUTPUT_CONTROL_BITMASK = HRTIM_OUTPUT_TB1,
 };
 
-HRPWM::HRPWM_Hardware_Channel HRPWM::CHANNEL_B2_PA11 = {
+const HRPWM::HRPWM_Hardware_Channel HRPWM::CHANNEL_B2_PA11 = {
 		.TIMER_INDEX = HRTIM_TIMERINDEX_TIMER_B,
 		.COMPARE_CHANNEL = Compare_Channel_Mapping::COMPARE_CHANNEL_3,
 		.OUTPUT_CONTROL_BITMASK = HRTIM_OUTPUT_TB2,
 };
 
+int HRPWM::num_timer_users = 0;
+
 //=========================================== CLASS MEMBER FUNCTIONS =========================================
-
-/*
- * TODO: halt DMA and interrupts as necessary
- */
-void HRPWM::DISABLE_ALL() {
-	//disable master timer and all individual timers in one write
-	//i know this compound assignment throws warnings, but should almost certainly be fine
-	hrtim_handle->Instance->sMasterRegs.MCR &= ~(TIMER_ENABLE_MASK);
-}
-
-/*
- * TODO: re-enable interrupts and DMA as necessary
- * maybe force a master timer reset event to resynchronize all the other timers?
- * 		- can guarantee resynch after one clock cycle so might not be necessary
- */
-void HRPWM::ENABLE_ALL() {
-	//enable master timer and all individual timers in one write
-	//i know this compound assignment throws warnings, but should almost certainly be fine
-	hrtim_handle->Instance->sMasterRegs.MCR |= TIMER_ENABLE_MASK;
-}
 
 bool HRPWM::GET_ALL_ENABLED() {
 	//read the master control register and see if timers are enabled
@@ -71,20 +53,18 @@ bool HRPWM::GET_ALL_ENABLED() {
  * 	- will disable and re-enable the PWM timers as necessary
  * 	- recomputes and updates all the duty cycle registers
  */
-bool HRPWM::SET_PERIOD_ALL(uint16_t period) {
+bool HRPWM::SET_FSW(float fsw_hz) {
 	if(GET_ALL_ENABLED()) return false; //don't adjust the period if the timers are enabled
-	if(period < PWM_MIN_PERIOD || period > PWM_MAX_PERIOD) return false; //if period is outta bounds
+
+	//bounds check the desired switching frequency
+	if(fsw_hz < FSW_MIN || fsw_hz > FSW_MAX) return false; //switching frequency is outside of hardware limits
+	uint16_t period = (uint16_t)round(HRTIM_EFFECTIVE_CLOCK / fsw_hz); //compute the period value that should go into the period control register
+	if(period < PWM_MIN_PERIOD || period > PWM_MAX_PERIOD) return false; //second round of sanity checking, in case uint16_t cast had errors
 
 	//set the period by adjusting the master timer
 	hrtim_handle->Instance->sMasterRegs.MPER = period;
 
 	return true;
-}
-
-//master timer period (raw register read basically, no unit conversion)
-uint16_t HRPWM::GET_PERIOD() {
-	//read the period register
-	return (uint16_t)(0xFFFF & hrtim_handle->Instance->sMasterRegs.MPER);
 }
 
 //switching frequency in Hz
@@ -97,7 +77,7 @@ float HRPWM::GET_FSW() {
 
 //=========================================== INSTANCE METHODS =========================================
 
-HRPWM::HRPWM(HRPWM_Hardware_Channel& _channel_hw):
+HRPWM::HRPWM(const HRPWM_Hardware_Channel& _channel_hw):
 		channel_hw(_channel_hw) //initialize the channel hardware struct with the one passed in
 {}
 void HRPWM::init() {
@@ -117,8 +97,44 @@ void HRPWM::init() {
 	hrtim_handle->Instance->sTimerxRegs[channel_hw.TIMER_INDEX].TIMxCR &= RESET_MODE;
 	hrtim_handle->Instance->sTimerxRegs[channel_hw.TIMER_INDEX].TIMxCR |= SINGLE_SHOT_RETRIGGERABLE_MODE;
 
-	//ensure the output is enabled
+	//ensure the output is disabled
+	hrtim_handle->Instance->sCommonRegs.ODISR = channel_hw.OUTPUT_CONTROL_BITMASK;
+}
+
+void HRPWM::enable() {
+	if(channel_enabled) return; //don't do anything if the channel is already enabled
+
+	//enable the corresponding output
 	hrtim_handle->Instance->sCommonRegs.OENR = channel_hw.OUTPUT_CONTROL_BITMASK;
+
+	//increment the number of users of the HRTIM instance
+	num_timer_users++;
+
+	//if this is the first user of the HRTIM, enable the peripheral
+	if(num_timer_users <= 1) {
+		ENABLE_ALL();
+		num_timer_users = 1; //lowest it can be here is 1, correct any weird errors
+	}
+}
+
+void HRPWM::disable() {
+	if(!channel_enabled) return; //don't do anything if the channel is already disabled
+
+	//disable the corresponding output
+	hrtim_handle->Instance->sCommonRegs.ODISR = channel_hw.OUTPUT_CONTROL_BITMASK;
+
+	//decrement the number of timer users
+	num_timer_users--;
+
+	//if there aren't any more users of the HRTIM, disable the peripheral
+	if(num_timer_users <= 0) {
+		DISABLE_ALL();
+		num_timer_users = 0; //lowest it can be here is 0, correct any weird errors
+	}
+}
+
+bool HRPWM::get_enabled() {
+	return channel_enabled;
 }
 
 
@@ -167,10 +183,11 @@ void HRPWM::set_duty_raw(uint16_t duty) {
 
 float HRPWM::get_duty() {
 	//duty cycle will be the value in the compare register divided by the period value
-	return ((float)(get_duty_raw())) / ((float)(GET_PERIOD()));
+	return std::clamp(((float)(get_duty_raw())) / ((float)(GET_PERIOD())), 0.0f, 1.0f); //ensure duty cycle is capped to 1 (in case PWM is forced high)
 }
 
 //faster version of get_duty; no float conversion
+//BE WARY--IF CHANNEL IS BEING FORCED HIGH, THIS FUNCTION WILL RETURN AN EFFECTIVE DUTY CYCLE > 1
 uint16_t HRPWM::get_duty_raw() {
 	if(channel_hw.COMPARE_CHANNEL == Compare_Channel_Mapping::COMPARE_CHANNEL_1)
 		return hrtim_handle->Instance->sTimerxRegs[channel_hw.TIMER_INDEX].CMP1xR;
@@ -178,3 +195,29 @@ uint16_t HRPWM::get_duty_raw() {
 		return hrtim_handle->Instance->sTimerxRegs[channel_hw.TIMER_INDEX].CMP3xR;
 }
 
+//========================= PRIVATE METHODS =======================
+uint16_t HRPWM::GET_PERIOD() {
+	//read the period register
+	return (uint16_t)(0xFFFF & hrtim_handle->Instance->sMasterRegs.MPER);
+}
+
+
+/*
+ * TODO: halt DMA and interrupts as necessary
+ */
+void HRPWM::DISABLE_ALL() {
+	//disable master timer and all individual timers in one write
+	//i know this compound assignment throws warnings, but should almost certainly be fine
+	hrtim_handle->Instance->sMasterRegs.MCR &= ~(TIMER_ENABLE_MASK);
+}
+
+/*
+ * TODO: re-enable interrupts and DMA as necessary
+ * maybe force a master timer reset event to resynchronize all the other timers?
+ * 		- can guarantee resynch after one clock cycle so might not be necessary
+ */
+void HRPWM::ENABLE_ALL() {
+	//enable master timer and all individual timers in one write
+	//i know this compound assignment throws warnings, but should almost certainly be fine
+	hrtim_handle->Instance->sMasterRegs.MCR |= TIMER_ENABLE_MASK;
+}

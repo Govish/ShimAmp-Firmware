@@ -17,8 +17,11 @@ extern "C" {
 class DIO {
 
 private:
+	//flag that gets set once we've initialized the GPIO, so we only do it once
+	static bool GPIO_INITIALIZED;
+
 	//point to a pre-instantiated
-	const dio_pin_t &pin_ref;
+	const PinMap::DIO_Hardware_Channel &pin_ref;
 	const uint32_t PIN_DRIVE_MASK = 0;
 	const uint32_t READ_MASK = 0;
 	volatile uint32_t* const port_BSRR = 0; //register to set the pin high
@@ -27,7 +30,7 @@ private:
 
 
 public:
-	DIO(const dio_pin_t &pin_name);
+	DIO(const PinMap::DIO_Hardware_Channel& pin_name);
 	static void init();
 
 //heavily optimize these functions for high performance

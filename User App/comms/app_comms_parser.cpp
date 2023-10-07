@@ -65,7 +65,7 @@ size_t Parser::parse_buffer(	const std::span<uint8_t, std::dynamic_extent> rx_pa
 			case HOST_COMMAND_ALL_DEVICES:
 			case HOST_COMMAND_TO_DEVICE:
 				//if the command is mapped, run it and record the function responses
-				if(command_handler_map[command_request_code] != NULL) {
+				if(command_handler_map[command_request_code] != nullptr) {
 					std::tie(response_type, response_plen) = command_handler_map[command_request_code](rx_payload, tx_payload);
 				}
 				//if it wasn't mapped, respond with a NACK
@@ -81,7 +81,7 @@ size_t Parser::parse_buffer(	const std::span<uint8_t, std::dynamic_extent> rx_pa
 			//handle a request code
 			case HOST_REQUEST_FROM_DEVICE:
 				//if the request is mapped, run it and record the function responses
-				if(request_handler_map[command_request_code] != NULL) {
+				if(request_handler_map[command_request_code] != nullptr) {
 					std::tie(response_type, response_plen) = request_handler_map[command_request_code](rx_payload, tx_payload);
 				}
 				//if it wasn't mapped, respond with a NACK
@@ -134,6 +134,7 @@ void Parser::set_address(uint8_t address) {
 void Parser::attach_command_cb(const size_t command_code, const command_handler_t command_handler) {
 	if(command_code < Parser::COMMAND_CODE_MIN) return;
 	if(command_code > Parser::COMMAND_CODE_MAX) return;
+	//ASSERT(command_handler_map[command_code] == nullptr); //this would be useful to ensure all commands map to unique values
 	Parser::command_handler_map[command_code] = command_handler;
 }
 
@@ -142,5 +143,6 @@ void Parser::attach_command_cb(const size_t command_code, const command_handler_
 void Parser::attach_request_cb(const size_t request_code, const request_handler_t request_handler) {
 	if(request_code < Parser::REQUEST_CODE_MIN) return;
 	if(request_code > Parser::REQUEST_CODE_MAX) return;
+	//ASSERT(request_handler_map[request_code] == nullptr); //this would be useful to ensure all requests map to unique values
 	Parser::request_handler_map[request_code] = request_handler;
 }

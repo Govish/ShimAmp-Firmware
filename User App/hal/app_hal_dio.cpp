@@ -14,7 +14,14 @@ extern "C" {
 #define BRR_BASE_REG		GPIOA_BASE + 0x28
 #define IDR_BASE_REG		GPIOA_BASE + 0x10
 
-DIO::DIO(const dio_pin_t &pin_name):
+//==================== STATIC MEMBER INITIALIZATION ==================
+
+bool DIO::GPIO_INITIALIZED = false;
+
+//======================= PUBLIC FUNCTIONS =====================
+
+//don't modify the reference
+DIO::DIO(const PinMap::DIO_Hardware_Channel& pin_name):
 		pin_ref(pin_name),
 		PIN_DRIVE_MASK(1 << (pin_name.pin)),
 		READ_MASK(1 << pin_name.pin),
@@ -29,7 +36,9 @@ DIO::DIO(const dio_pin_t &pin_name):
 }
 
 void DIO::init() {
+	if(GPIO_INITIALIZED) return;
 	MX_GPIO_Init();
+	GPIO_INITIALIZED = true;
 }
 
 void DIO::set() const {

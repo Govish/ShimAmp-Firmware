@@ -69,7 +69,7 @@ std::pair<Parser::MessageType_t, size_t> Test_Request_Handlers::test_uint32(cons
 	//everything's kosher
 	tx_payload[0] = RQ_Mapping::TEST_UINT32; //this is the request we serviced
 	pack(the_test_uint32, tx_payload.subspan(1, 4)); //put the uint32_t starting at index 1, taking 4 bytes
-	return std::make_pair(Parser::DEVICE_RESPONSE_HOST_REQUEST, 5); //and return an ack message along with a two-byte payload
+	return std::make_pair(Parser::DEVICE_RESPONSE_HOST_REQUEST, 5); //and return an ack message along with a five-byte payload
 }
 
 std::pair<Parser::MessageType_t, size_t> Test_Request_Handlers::test_int32(	const std::span<uint8_t, std::dynamic_extent> rx_payload,
@@ -99,7 +99,7 @@ std::pair<Parser::MessageType_t, size_t> Test_Request_Handlers::test_int32(	cons
 	//everything's kosher
 	tx_payload[0] = RQ_Mapping::TEST_INT32; //this is the request we serviced
 	pack(the_test_int32, tx_payload.subspan(1, 4)); //put the int32 starting at index 1, taking 4 bytes
-	return std::make_pair(Parser::DEVICE_RESPONSE_HOST_REQUEST, 5); //and return an ack message along with a two-byte payload
+	return std::make_pair(Parser::DEVICE_RESPONSE_HOST_REQUEST, 5); //and return an ack message along with a five-byte payload
 }
 
 std::pair<Parser::MessageType_t, size_t> Test_Request_Handlers::test_float(	const std::span<uint8_t, std::dynamic_extent> rx_payload,
@@ -129,7 +129,7 @@ std::pair<Parser::MessageType_t, size_t> Test_Request_Handlers::test_float(	cons
 	//everything's kosher
 	tx_payload[0] = RQ_Mapping::TEST_FLOAT; //this is the request we serviced
 	pack(the_test_float, tx_payload.subspan(1, 4)); //put the float starting at index 1, taking 4 bytes
-	return std::make_pair(Parser::DEVICE_RESPONSE_HOST_REQUEST, 5); //and return an ack message along with a two-byte payload
+	return std::make_pair(Parser::DEVICE_RESPONSE_HOST_REQUEST, 5); //and return an ack message along with a five-byte payload
 }
 
 std::pair<Parser::MessageType_t, size_t> Test_Request_Handlers::test_string(const std::span<uint8_t, std::dynamic_extent> rx_payload,
@@ -159,7 +159,7 @@ std::pair<Parser::MessageType_t, size_t> Test_Request_Handlers::test_string(cons
 	//everything's kosher
 	tx_payload[0] = RQ_Mapping::TEST_STRING; //this is the request we serviced
 	std::copy(the_test_string.begin(), the_test_string.end(), tx_payload.begin() + 1); //copy the test string into the tx payload starting at index 1
-	return std::make_pair(Parser::DEVICE_RESPONSE_HOST_REQUEST, the_test_string.size() + 1); //and return an ack message along with a two-byte payload
+	return std::make_pair(Parser::DEVICE_RESPONSE_HOST_REQUEST, the_test_string.size() + 1); //and return an ack message along with a <size+1>-byte payload
 }
 
 //================================================== getter functions for container of handlers ===============================================

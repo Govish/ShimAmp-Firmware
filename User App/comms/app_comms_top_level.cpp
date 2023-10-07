@@ -10,16 +10,32 @@
 
 //================ REQUEST HANDLER INCLUDES ==============
 #include "app_rqhand_test.h"
+#include "app_rqhand_power_stage_status.h"
 
 //================ COMMAND HANDLER INCLUDES ==============
 #include "app_cmhand_test.h"
+#include "app_cmhand_power_stage_ctrl.h"
 
 
-//Constructor is private for the singleton class
-Comms_Exec_Subsystem::Comms_Exec_Subsystem():
-		serial_comms(UART::LPUART, Cobs::CHAR_START_OF_FRAME, Cobs::CHAR_END_OF_FRAME, serial_tx_buffer, serial_rx_buffer),
+//================================= DEFINING STANDARD CONFIGURATION ==============================
+
+Comms_Exec_Subsystem::Configuration_Details Comms_Exec_Subsystem::COMMS_EXEC_CONFIG = {
+		//run the main communication system off of LPUART
+		.uart_channel = UART::LPUART,
+
+		//CRC-16/AUG-CCITT, common 16-bit CRC parameters
+		.crc_poly = 0x1021,
+		.crc_seed = 0x1D0F,
+		.crc_xor_out = 0x0000,
+};
+
+//======================================= PUBLIC METHODS =====================================
+
+//Constructor
+Comms_Exec_Subsystem::Comms_Exec_Subsystem(Configuration_Details& config_details):
+		serial_comms(config_details.uart_channel, Cobs::CHAR_START_OF_FRAME, Cobs::CHAR_END_OF_FRAME, serial_tx_buffer, serial_rx_buffer),
 		cobs(),
-		crc(crc_poly, crc_seed, crc_xor_out),
+		crc(config_details.crc_poly, config_details.crc_seed, config_details.crc_xor_out),
 		parser(crc)
 {}
 
@@ -33,13 +49,12 @@ void Comms_Exec_Subsystem::init(uint8_t device_address) {
 	parser.set_address(device_address);
 
 	//TODO: register all command and request callbacks here
-	for(auto& [rq_code, rq_callback] : Test_Request_Handlers::request_handlers()) {
-		parser.attach_request_cb(rq_code, rq_callback);
-	}
+	for(auto& [rq_code, rq_callback] : Test_Request_Handlers::request_handlers()) parser.attach_request_cb(rq_code, rq_callback);
+	for(auto& [rq_code, rq_callback] : Power_Stage_Request_Handlers::request_handlers()) parser.attach_request_cb(rq_code, rq_callback);
 
-	for(auto& [cm_code, cm_callback] : Test_Command_Handlers::command_handlers()) {
-		parser.attach_command_cb(cm_code, cm_callback);
-	}
+	for(auto& [cm_code, cm_callback] : Test_Command_Handlers::command_handlers()) parser.attach_command_cb(cm_code, cm_callback);
+	for(auto& [cm_code, cm_callback] : Power_Stage_Command_Handlers::command_handlers()) parser.attach_command_cb(cm_code, cm_callback);
+
 }
 
 //call this in `app_loop()`

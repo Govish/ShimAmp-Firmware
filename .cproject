@@ -56,6 +56,7 @@
 									<listOptionValue builtIn="false" value="&quot;../User App/utils&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;../User App/handlers - request&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;../User App/handlers - command&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;../User App/power stage control&quot;"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.368861044" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c"/>
 							</tool>
@@ -80,6 +81,7 @@
 									<listOptionValue builtIn="false" value="&quot;../User App/utils&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;../User App/handlers - request&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;../User App/handlers - command&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;../User App/power stage control&quot;"/>
 								</option>
 								<option id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.cpp.compiler.option.languagestandard.1868289100" name="Language standard" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.cpp.compiler.option.languagestandard" useByScannerDiscovery="true" value="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.cpp.compiler.option.languagestandard.value.gnupp20" valueType="enumerated"/>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.cpp.compiler.input.cpp.357760568" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.cpp.compiler.input.cpp"/>
@@ -159,6 +161,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/User App/inc}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/User App}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;../User App/utils&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;../User App/power stage control&quot;"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.assembler.input.963386411" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.assembler.input"/>
 							</tool>
@@ -180,6 +183,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/User App/inc}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/User App}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;../User App/utils&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;../User App/power stage control&quot;"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.776250417" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c"/>
 							</tool>
@@ -201,6 +205,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/User App/inc}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/User App}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;../User App/utils&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;../User App/power stage control&quot;"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.cpp.compiler.input.cpp.1336815079" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.cpp.compiler.input.cpp"/>
 							</tool>
