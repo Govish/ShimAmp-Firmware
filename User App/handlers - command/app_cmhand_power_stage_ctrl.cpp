@@ -525,7 +525,7 @@ std::pair<Parser::MessageType_t, size_t> Power_Stage_Command_Handlers::stage_set
 	}
 
 	//grab the float that was sent over starting at index 1
-	float fsw_hz = unpack_float(tx_payload.subspan(1, 4));
+	float fsw_hz = unpack_float(rx_payload.subspan(1, 4));
 
 	//now try to set switching frequency
 	//execution can fail if switching frequency out of range OR power stage not disabled

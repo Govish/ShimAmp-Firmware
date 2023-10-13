@@ -73,6 +73,11 @@ float HRPWM::GET_FSW() {
 	return HRTIM_EFFECTIVE_CLOCK / (float)GET_PERIOD();
 }
 
+uint16_t HRPWM::GET_PERIOD() {
+	//read the period register
+	return (uint16_t)(0xFFFF & hrtim_handle->Instance->sMasterRegs.MPER);
+}
+
 /*TODO: ADC synchronization and period elapsed callback*/
 
 //=========================================== INSTANCE METHODS =========================================
@@ -107,6 +112,9 @@ void HRPWM::enable() {
 	//enable the corresponding output
 	hrtim_handle->Instance->sCommonRegs.OENR = channel_hw.OUTPUT_CONTROL_BITMASK;
 
+	//flag this channel as enabled
+	channel_enabled = true;
+
 	//increment the number of users of the HRTIM instance
 	num_timer_users++;
 
@@ -122,6 +130,9 @@ void HRPWM::disable() {
 
 	//disable the corresponding output
 	hrtim_handle->Instance->sCommonRegs.ODISR = channel_hw.OUTPUT_CONTROL_BITMASK;
+
+	//now flag this channel as disabled
+	channel_enabled = false;
 
 	//decrement the number of timer users
 	num_timer_users--;
@@ -196,11 +207,6 @@ uint16_t HRPWM::get_duty_raw() {
 }
 
 //========================= PRIVATE METHODS =======================
-uint16_t HRPWM::GET_PERIOD() {
-	//read the period register
-	return (uint16_t)(0xFFFF & hrtim_handle->Instance->sMasterRegs.MPER);
-}
-
 
 /*
  * TODO: halt DMA and interrupts as necessary

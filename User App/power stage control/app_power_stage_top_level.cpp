@@ -74,7 +74,7 @@ bool Power_Stage_Subsystem::set_mode(Stage_Mode mode) {
 
 			stage_wrapper.IS_LOCKED_OUT = true; //lock out external writes to the power stage
 			stage.disable(); //always need to disable the power stage
-
+			operating_mode = Stage_Mode::DISABLED;
 			break;
 
 		case Stage_Mode::ENABLED_MANUAL:
@@ -83,7 +83,7 @@ bool Power_Stage_Subsystem::set_mode(Stage_Mode mode) {
 
 			stage.enable(); //enable the power stage
 			stage_wrapper.IS_LOCKED_OUT = false; //allow manual writes to the stage
-
+			operating_mode = Stage_Mode::ENABLED_MANUAL;
 			break;
 
 		case Stage_Mode::ENABLED_AUTO:

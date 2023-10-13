@@ -40,6 +40,7 @@ public:
 	static bool GET_ALL_ENABLED();
 	static bool SET_FSW(float fsw_hz); //set the desired switching frequency in Hz
 	static float GET_FSW(); //switching frequency in Hz
+	static uint16_t GET_PERIOD(); //HRTIM counts in one period
 
 	/*TODO: ADC synchronization and period elapsed callback*/
 
@@ -67,7 +68,6 @@ public:
 
 private:
 	//============== quick utility functions ===============
-	static uint16_t GET_PERIOD();
 	static void ENABLE_ALL();
 	static void DISABLE_ALL();
 

@@ -13,9 +13,10 @@
 #include <span>
 #include <array>
 #include <string>
+#include <cmath>
 
 
-//#### ARRAY TO SPAN SLICING AND CONVERSION UTILTIES ####
+//============================================== ARRAY TO SPAN SLICING AND CONVERSION UTILTIES ===============================================
 
 /*
  * function that takes a std::array along with slice indices [begin, end)
@@ -24,6 +25,7 @@
  *
  * Have to define this function in the header file since it's templated (necessary evil)
  */
+
 template <typename T, size_t len>
 inline std::span<T, std::dynamic_extent> spn(std::array<T, len>& arr, const size_t begin, const size_t end) {
 	return std::span<T, std::dynamic_extent>(arr.begin() + begin, arr.begin() + end);
@@ -41,7 +43,8 @@ inline std::span<T, std::dynamic_extent> spn(std::array<T, len>& arr, const size
 	return spn(arr, 0, subarray_len);
 }
 
-//============================================== CONST OVERLOADS OF PREVIOUS CASTING FUNCTIONS ===============================================
+//########## CONST OVERLOADS OF PREVIOUS CASTING FUNCTIONS ##########
+
 template <typename T, size_t len>
 inline std::span<const T, std::dynamic_extent> spn(const std::array<T, len>& arr, const size_t begin, const size_t end) {
 	return std::span<const T, std::dynamic_extent>(arr.begin() + begin, arr.begin() + end);
@@ -70,7 +73,6 @@ inline std::span<const T, std::dynamic_extent> spn(const std::array<T, len>& arr
  * NOTE: THESE METHODS ASSUME THAT `buf` HAS VALID ARRAY INDICES [0], [1], [2], [3] (or [`n`] for the string packing function)
  * NO BOUNDS CHECKING IS EXPLICITLY DONE FOR PERFORMANCE REASONS
  */
-
 
 void pack(const uint32_t val, std::span<uint8_t, std::dynamic_extent> buf); //pack a uint32_t value in big endian order
 void pack(const int32_t val, std::span<uint8_t, std::dynamic_extent> buf); //pack an int32_t value in big endian order
@@ -102,5 +104,37 @@ constexpr std::array<uint8_t, N - 1> s2a(const char (&a)[N])
     return s2a(a, std::make_index_sequence<N - 1>());
 }
 
+//==========================================================================================================================================
+/*
+ * Float string formatting utility
+ *
+ * Simple utility to print floats with a fixed precision
+ * since float formatting can be a bit tricky/memory intensive through library techniques
+ * and sometimes requires compiler/build settings to be changed affecting code portability
+ *
+ * I'll templatize this function for a slight degree of anticipated compiler optimization
+ * however, this isn't meant to be a fast function so use in non-performance-critical scenarios
+ * ASSUMING THAT THE FLOATING POINT VALUE CAN FIT INTO A SIGNED LONG TYPE (+/- 2.147 billion)
+ *
+ * Inspired by:
+ *  - https://stackoverflow.com/questions/47837838/get-decimal-part-of-a-number
+ *  - https://stackoverflow.com/questions/28334435/stm32-printf-float-variable
+ *  - https://stackoverflow.com/questions/6143824/add-leading-zeroes-to-string-without-sprintf
+ */
+
+template<size_t precision> //how many decimal points to print
+inline std::string f2s(float val) {
+	constexpr float scaling = std::pow(10.0, (float)precision);
+
+	float integer_part; //modf requires a float argument for the integer part
+	float decimal = std::modf(val, &integer_part); //separate the float into its decimal and integer part
+
+	//format the decimal part of the string first by calculating precision, then zero padding appropriately
+	std::string decimal_string = std::to_string((long)std::round(decimal * scaling));
+	std::string padded_decimal_string = std::string(precision - std::min(precision, decimal_string.length()), '0') + decimal_string;
+
+	//concatenate integer and decimal parts of the string and return
+	return std::to_string((long)integer_part) + "." + padded_decimal_string;
+}
 
 #endif /* UTILS_APP_UTILS_H_ */

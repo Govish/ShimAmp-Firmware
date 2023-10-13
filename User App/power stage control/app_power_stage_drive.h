@@ -46,10 +46,10 @@ public:
 	//setter methods that set the drive state of the power stage
 	//intended to be interfaced through the controller
 	bool set_drive(float drive); // -1 to 1, full negative to full positive, true if set successfully
-	void set_drive_raw(int32_t drive); //basically a direct register write with polarity; minimal bounds checking for performance
+	void set_drive_raw(int16_t drive); //basically a direct register write with polarity; minimal bounds checking for performance
 	bool set_drive_halves(float drive_pos, float drive_neg); //drive each individual bridge half with particular duties, 0-1; true if set successfully
 	float get_drive_duty(); //-1 to 1, whatever the bridge is currently being driven with
-	int32_t get_drive_raw(); //read right from the registers, and do a little conversion to sign this number
+	int16_t get_drive_raw(); //read right from the registers, and do a little conversion to sign this number
 	std::pair<float, float> get_drive_halves(); //[pos, neg] duty cycles for each half bridge, 0-1
 
 	//setter/getter method for switching frequency (with more aggressive bounds checking)
@@ -62,13 +62,30 @@ public:
 	std::pair<uint16_t, float> get_control_parameters();
 
 private:
-	static constexpr float POWER_STAGE_FSW_MIN = 500e3; //minimum allowable switching frequency
+	//================================== OPERATING CONSTANTS FOR HARDWARE =========================================
+
+	static constexpr float POWER_STAGE_FSW_MIN = 1e6; //minimum allowable switching frequency, ripple current gets kinda large below this
 	static constexpr float POWER_STAGE_FSW_MAX = 2e6; //maximum allowable switching frequency
 
+	//NOTE: MAKING THE ASSUMPTIONS THAT THESE LIMITS ARE MORE AGGRESSIVE THAN THE HRTIM ONES
+	//which is going to be the case in basically all applications
+	static constexpr float POWER_STAGE_DUTY_MIN = 0.05; //run the power stages at least above this value (somewhat arbitrary, here for symmetry)
+	static constexpr float POWER_STAGE_DUTY_MAX = 0.9; //max recommended is 85%, give us a little bonus since we aren't that close to other operating limits
+	static constexpr float POWER_STAGE_TON_MIN = 20e-9; //minimum on-time as recommended by the datasheet
+	static constexpr float POWER_STAGE_TON_MAX = 1e-6; //kinda bogus, here for symmetry and future-proofing
+
+	//================================== CLASS MEMBERS =========================================
 	HRPWM& bridge_pos; //positive side PWM drive
 	HRPWM& bridge_neg; //negative side PWM drive
 	DIO& bridge_en;
 	const bool EN_ACTIVE_HIGH; //have a flag that tells us whether to drive the EN pin low or high to enable the bridge
+
+	//these two parameters set up min and max counts we can write to the PWM channels
+	//we'll idle the bridges at `min_count` in order to achieve no zero crossing distortion and maximum linearity
+	//at a slight cost of noise
+	uint16_t bridge_min_on_count;
+	uint16_t bridge_max_on_count;
+	uint16_t bridge_period_count; //how many cycles consist of a single PWM period
 
 	bool bridge_enabled; //flag that gets set/cleared according to power stage being enabled
 };
@@ -76,7 +93,7 @@ private:
 //=========================== WRAPPER INTERFACE THAT IMPLEMENTS LOCK-OUT TYPE FEATURES ==============================
 //implements functionality that should only be exposed over to the user interface
 //instantiate one of these objects and only allow the `set` functions to work if `IS_LOCKED_OUT` is false
-//`IS_LOCKED_OUT` can be controlled by the
+//`IS_LOCKED_OUT` can be controlled by the subsystem
 
 class Power_Stage_Wrapper {
 	friend class Power_Stage_Subsystem; //allow this class to manage the IS_LOCKED_OUT variable
@@ -102,16 +119,16 @@ public:
 		return stage.get_drive_duty();
 	}
 
-	std::pair<float, float> get_drive_halves() {
+	inline std::pair<float, float> get_drive_halves() {
 		return stage.get_drive_halves();
 	}
 
 	//###### AUTOMATICALLY ACCESS CONTROLLED BY THE POWER STAGE ITSELF ######
-	static bool SET_FSW(float fsw_hz) {
+	inline static bool SET_FSW(float fsw_hz) {
 		return Power_Stage::SET_FSW(fsw_hz);
 	}
 
-	static float GET_FSW() {
+	inline static float GET_FSW() {
 		return Power_Stage::GET_FSW();
 	}
 
