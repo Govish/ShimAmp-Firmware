@@ -120,6 +120,7 @@ void UART::error_handler() {
 }
 
 //======================================= PROCESSOR ISRs ====================================
+//TODO: optimize the UART ISRs to be lighter weight and only use the functions we need; implement RX Fifo full callback
 
 //call the appropriate RX complete interrupt handler according to which UART caused the interrupt
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {

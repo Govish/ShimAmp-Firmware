@@ -63,8 +63,8 @@ public:
 
 	//### GETTER METHODS ###
 	//these methods will return a pointer to the constituent instances of the power stage controller
-	//  \--> IF IT IS SAFE TO DO SO (i.e. the correct mode is enabled)
-	//if not these functions will return A NULL POINTER, i.e. CALLING FUNCTIONS MUST CHECK FOR NULL POINTERS
+	//in a wrapper class that is access controlled
+	//as such, writes/configuration updates will be forbidden if it's not safe to do so
 
 	//return a pointer to the power stage instance for manual control (access controlled appropriately)
 	Power_Stage_Wrapper& get_direct_stage_control_instance();

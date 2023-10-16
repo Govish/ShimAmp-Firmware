@@ -30,6 +30,9 @@ typedef enum Priorities {
 extern "C" {
 	//example provided below:
 	//void TIM1_BRK_TIM9_IRQHandler(void); //general purpose timer channel 0
+
+	//ADC3 interrupt
+	void ADC3_IRQHandler(void); //ADC channel 3 conversion complete interrupt
 }
 
 #endif /* BOARD_HAL_INC_APP_HAL_INT_UTILS_H_ */

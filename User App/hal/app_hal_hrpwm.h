@@ -42,7 +42,12 @@ public:
 	static float GET_FSW(); //switching frequency in Hz
 	static uint16_t GET_PERIOD(); //HRTIM counts in one period
 
-	/*TODO: ADC synchronization and period elapsed callback*/
+	//Triggered ADCs should be sampled atsome integer ratio of switching frequency
+	//this aliases switching harmonics down to DC and at worst should just require some kinda DC correction factor
+	//to ADC readings
+	static bool SET_ADC_TRIGGER_FREQUENCY(float ftrig_hz);
+	static float GET_ADC_TRIGGER_FREQUENCY();
+
 
 	HRPWM(const HRPWM_Hardware_Channel& _channel_hw); //constructor
 
@@ -79,11 +84,11 @@ private:
 	static constexpr float FSW_MIN = HRTIM_EFFECTIVE_CLOCK / (float)PWM_MAX_PERIOD;
 	static constexpr float FSW_MAX = HRTIM_EFFECTIVE_CLOCK / (float)PWM_MIN_PERIOD;
 
-
 	//============================== BITMASK AND REGISTER CONSTANTS ============================
 	static const uint32_t TIMER_ENABLE_MASK = 0x7F0000; //enable/disable all timers with this mask
 	static const uint32_t RESET_MODE = ~(0x18); //reset the channel mode bits
 	static const uint32_t SINGLE_SHOT_RETRIGGERABLE_MODE = 0x10; //bitwise or with channel to put into single shot retriggerable
+	static const uint8_t ADC_POSTSCALER_MASK = 0x1F; //maximum value we can put into the post-scaler
 
 	//================================ STATIC MEMBERS =================================
 	static const HRTIM_HandleTypeDef* hrtim_handle; //pointer to the hardware

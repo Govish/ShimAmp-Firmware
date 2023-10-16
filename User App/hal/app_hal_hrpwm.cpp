@@ -78,7 +78,27 @@ uint16_t HRPWM::GET_PERIOD() {
 	return (uint16_t)(0xFFFF & hrtim_handle->Instance->sMasterRegs.MPER);
 }
 
-/*TODO: ADC synchronization and period elapsed callback*/
+//triggered ADCs are configured to run off of ADC_TRIGGER_1
+//expect a decent amount of rounding error here
+//application can get the actual ADC trigger frequency from the getter function (useful for controller)
+//these values can be updated even when timer is ticking
+bool HRPWM::SET_ADC_TRIGGER_FREQUENCY(float ftrig_hz) {
+	//bounds check the desired trigger frequency
+	if(ftrig_hz > GET_FSW() || (ftrig_hz * (ADC_POSTSCALER_MASK + 1)) < GET_FSW()) return false;
+
+	//compute the dividing factor between the switching frequency and the ADC trigger frequency
+	uint8_t adc_multiple = std::round(GET_FSW() / ftrig_hz);
+
+	//write the dividing factor to the ADC trigger postscaler bits (subtract 1 to get register value)
+	hrtim_handle->Instance->sCommonRegs.ADCPS1 = (adc_multiple - 1) &  ADC_POSTSCALER_MASK;
+	return true;
+}
+
+//based on the post-scaler value, figure out what frequency the ADC is getting triggered at
+float HRPWM::GET_ADC_TRIGGER_FREQUENCY() {
+	uint32_t dividing_ratio = (hrtim_handle->Instance->sCommonRegs.ADCPS1 & ADC_POSTSCALER_MASK) + 1;
+	return GET_FSW() / (float)dividing_ratio;
+}
 
 //=========================================== INSTANCE METHODS =========================================
 
