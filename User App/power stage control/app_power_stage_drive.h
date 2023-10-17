@@ -103,6 +103,10 @@ public:
 		stage(_stage)
 	{}
 
+	//delete copy constructor and assignment operator
+	Power_Stage_Wrapper(Power_Stage_Wrapper const&) = delete;
+	void operator=(Power_Stage_Wrapper const&) = delete;
+
 	//##### ACCESS CONTROLLED SETTER METHODS #####
 	inline bool set_drive(float drive) {
 		if(!IS_LOCKED_OUT) return stage.set_drive(drive);

@@ -14,6 +14,11 @@ Power_Stage_Subsystem::Configuration_Details Power_Stage_Subsystem::POWER_STAGE_
 		.neg_channel = HRPWM::CHANNEL_B1_PA10,
 		.en_pin_name = PinMap::status_led, /*TODO*/
 		.en_active_high = true,
+
+		.vfine = Triggered_ADC::CHANNEL_3,
+		.vcoarse = Triggered_ADC::CHANNEL_3, /*TODO*/
+		.ifine = Triggered_ADC::CHANNEL_3, /*TODO*/
+		.icoarse = Triggered_ADC::CHANNEL_3, /*TODO*/
 };
 
 //================================= PUBLIC MEMBER FUNCTIONS =============================
@@ -25,7 +30,8 @@ Power_Stage_Subsystem::Power_Stage_Subsystem(Power_Stage_Subsystem::Configuratio
 		chan_pwm_pos(config_details.pos_channel),
 		chan_pwm_neg(config_details.neg_channel),
 		stage(chan_pwm_pos, chan_pwm_neg, en_pin, config_details.en_active_high),
-		stage_wrapper(stage)
+		stage_wrapper(stage),
+		vi_sampler(config_details.vfine, config_details.vcoarse, config_details.ifine, config_details.icoarse)
 {
 	operating_mode = Stage_Mode::UNINITIALIZED; //start off with the stage being uninitialized
 }

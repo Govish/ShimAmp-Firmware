@@ -24,7 +24,19 @@ Triggered_ADC::Triggered_ADC_Hardware_Channel Triggered_ADC::CHANNEL_3 = {
 //constructor just stores the corresponding hardware instance
 Triggered_ADC::Triggered_ADC(Triggered_ADC_Hardware_Channel& _hardware):
 		hardware(_hardware)
-{}
+{
+	//for single-ended operation, treat 0 as 0V, and map the max value to VREF on the input
+	if(hardware.in_mode == Input_Mode::SINGLE_ENDED) {
+		gain_v_to_counts = ADC_REFERENCE_VOLTAGE / ADC_MAX_CODE;
+		offset_counts = 0;
+	}
+
+	//for differential-mode operation, treat somewhere around the middle as zero, and each LSB represents double the voltage
+	else {
+		gain_v_to_counts = 2*ADC_REFERENCE_VOLTAGE / ADC_MAX_CODE;
+		offset_counts = (ADC_MAX_CODE / 2) + 8; //zero is slightly above the middle value
+	}
+}
 
 
 /*
@@ -74,9 +86,13 @@ void Triggered_ADC::init() {
 
 //correct for ADC reading inaccuracies with this function
 //adds gain and offset at the hardware level, so slightly higher performance than software implementation
-void Triggered_ADC::trim(float gain, float zero_offset) {
-	//TODO: adjust registers
-	return;
+void Triggered_ADC::trim(float gain_trim, float offset_trim) {
+	//don't allow gain_trim to be 0--unrecoverable
+	if(gain_trim == 0) return;
+
+	//perform relative modification of the gain and offset values
+	gain_v_to_counts *= gain_trim;
+	offset_counts += offset_trim;
 }
 
 //store the appropriate conversion complete callback passed in
@@ -85,22 +101,20 @@ void Triggered_ADC::attach_cb(callback_function_t cb) {
 	hardware.interrupt_callback = cb; //assign the callback function to the hardware mapping
 }
 
-std::pair<uint16_t, bool> Triggered_ADC::get_val(bool clear_flag) {
-	//grab the ADC value and whether the value was updated from the particular hardware
-	std::pair<uint16_t, bool> retval = std::make_pair(hardware.adc_val, hardware.recently_updated);
+//get whether the ADC has been updated since last read of the ADC value
+bool Triggered_ADC::get_updated() {
+	return hardware.recently_updated;
+}
+
+//get the ADC value
+uint16_t Triggered_ADC::get_val(const bool clear_flag) {
 	if(clear_flag) hardware.recently_updated = false; //clear the read flag as necessary
-	return retval;
+	return hardware.adc_val;
 }
 
 std::pair<float, float> Triggered_ADC::get_gain_offset() {
-	if(hardware.in_mode == Input_Mode::SINGLE_ENDED) {
-		//single-ended conversion is pretty straightforward; just a linear scaling from reference voltage to the maximum code
-		return std::make_pair(ADC_REFERENCE_VOLTAGE / ADC_MAX_CODE, 0.0f);
-	}
-	else {
-		//in differential mode, ADC has to span +/- VREF in the same code range; with the zero value offset to the middle of the code range
-		return std::make_pair(2.0 * ADC_REFERENCE_VOLTAGE / ADC_MAX_CODE, ADC_ZERO_CODE_DIFF);
-	}
+	//just return the internally maintained gain and offset values
+	return std::make_pair(gain_v_to_counts, offset_counts);
 }
 
 

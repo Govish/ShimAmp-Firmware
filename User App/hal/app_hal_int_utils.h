@@ -8,12 +8,13 @@
 #ifndef BOARD_HAL_INC_APP_HAL_INT_UTILS_H_
 #define BOARD_HAL_INC_APP_HAL_INT_UTILS_H_
 
+#include <functional> //for callback function typedef
+
 inline void empty_cb() {} //defining some kinda empty function with which to initialize callback functions (inlining to avoid compilation errors)
 
 //define a type for callback functions that we can call when interrupts are handled
 //doing this for easier readability
-//https://stackoverflow.com/questions/6339970/c-using-function-as-parameter
-typedef void (*callback_function_t)(void);
+typedef std::function<void(void)> callback_function_t;
 
 //enum numeric mappings correspond to to NVIC values
 typedef enum Priorities {

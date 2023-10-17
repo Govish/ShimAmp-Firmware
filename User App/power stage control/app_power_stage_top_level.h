@@ -11,9 +11,11 @@
 //HAL type includes
 #include "app_hal_hrpwm.h"
 #include "app_hal_dio.h"
+#include "app_hal_adc.h"
 
 //Higher level functions related to power stage control/regulation
 #include "app_power_stage_drive.h"
+#include "app_power_stage_sampler.h"
 
 class Power_Stage_Subsystem {
 public:
@@ -25,6 +27,12 @@ public:
 		const HRPWM::HRPWM_Hardware_Channel& neg_channel;
 		const PinMap::DIO_Hardware_Channel& en_pin_name;
 		const bool en_active_high;
+
+		//ADC channels for measuring control variables
+		Triggered_ADC::Triggered_ADC_Hardware_Channel& vfine;
+		Triggered_ADC::Triggered_ADC_Hardware_Channel& vcoarse;
+		Triggered_ADC::Triggered_ADC_Hardware_Channel& ifine;
+		Triggered_ADC::Triggered_ADC_Hardware_Channel& icoarse;
 	};
 	static Configuration_Details POWER_STAGE_CHANNEL_0;
 
@@ -66,24 +74,37 @@ public:
 	//in a wrapper class that is access controlled
 	//as such, writes/configuration updates will be forbidden if it's not safe to do so
 
-	//return a pointer to the power stage instance for manual control (access controlled appropriately)
+	//return a reference to the power stage instance for manual control (access controlled appropriately)
 	Power_Stage_Wrapper& get_direct_stage_control_instance();
+
+	//return a reference to the sampler (along with whether ADC trigger source is running)
+	//allows for terminal voltage/current measurement, and ADC trimming
+	std::pair<Sampler_Wrapper&, bool> get_vi_sampler_instance();
 
 private:
 	//##### all these objects will be initialized in the constructor of `Comms_Exec_Subsystem` #####
 
 	//======================== Everything Power-stage Related =========================
+	//TODO: power stage should own enable pin and HRPWM channels
 	DIO en_pin;
 	HRPWM chan_pwm_pos; //pwm that drives the positive-side half-bridge
 	HRPWM chan_pwm_neg; //pwm that drives the negative-side half-bridge
 	Power_Stage stage; //manage a power stage
 	Power_Stage_Wrapper stage_wrapper; //wrap the power stage with this function when handing off to the public
 
+	//====================== Everything Sampler Related ====================
+	Sampler vi_sampler; //instance that reads the voltages and currents at/through the output
+	Sampler_Wrapper vi_sampler_wrapper; //wrap the sampler in with this before handing it off to the public
+
+	//====================== Everything Regulator Related =====================
+
+
+	//====================== Everything Setpoint Controller Related ===================
+
 	/*
 	 * TODO:
 	 *  - regulator
 	 *  - setpoint controller
-	 *  - ADC
 	 *  - etc.
 	 */
 	//==================== State-esque member variables ======================

@@ -62,17 +62,23 @@ public:
 	//map a callback function that called during a conversion complete interrupt
 	void attach_cb(callback_function_t cb);
 
-	//adjust the gain and the offset of the ADC TODO
-	//use the ADC hardware to perform this trimming so we don't have to do any additional conversion
-	void trim(float gain, float zero_offset);
+	//adjust the gain and the offset of the ADC
+	//just modifying the control gains and offset since we'll have to do computation with this anyway
+	//GAIN TRIM IS A RATIO THAT MULTIPLIES EXISTING GAIN BY THE FACTOR
+	//OFFSET TRIM IS IN UNITS OF COUNTS AND IS ADDED TO THE EXISTING OFFSET
+	void trim(float gain_trim, float offset_trim);
 
-	//get the ADC value, along with whether the ADC value has been updated since the last read
-	std::pair<uint16_t, bool> get_val(bool clear_flag = true); //optionally dont' clear the `recently_triggered` flag
+	//get whether there has been a new ADC reading since the previous value had been read out
+	bool get_updated();
+
+	//get the ADC value; heavily optimize since we'll be running this in the control loop
+	uint16_t __attribute__((optimize("O3"))) get_val(const bool clear_flag = true); //optionally dont' clear the `recently_triggered` flag
 
 	//for control loop, get the voltage --> ADC code transfer coefficients (takes into account single-ended vs differential mode operation)
 	//pair is in the form of <gain, offset>, such that gain, offset satisfy the following equation (adc voltage input, adc code output)
 	// ADC_CODE = `gain` * TERMINAL_VOLTAGE + `offset`
-	std::pair<float, float> get_gain_offset();
+	//heavily optimizing since will be called from interrupt context (though this is a relatively simple function)
+	std::pair<float, float> __attribute__((optimize("O3"))) get_gain_offset(); //[gain, offset]
 
 private:
 
@@ -80,10 +86,14 @@ private:
 
 	//conversion factor between ADC values and voltages
 	static constexpr float ADC_REFERENCE_VOLTAGE = 3.3;
-	static constexpr float ADC_MAX_CODE = (float)0xFFFF; //left aligned data
-	static constexpr float ADC_ZERO_CODE_DIFF = (float)0x8000; //value that zero is mapped to for differential-mode signals
+	static constexpr float ADC_MAX_CODE = (float)0xFFF0; //left aligned data, 12 bits extended to 16 bits
 
 	//================== MEMBER VARIABLES ===============
+
+	//store gain and offset values for each ADC instance
+	//will initialize these to different values based off of differential or single-ended operation
+	float gain_v_to_counts;
+	float offset_counts;
 
 	//store a reference to the hardware
 	//adc readings and recently updated flags will be stored with the hardware instance
