@@ -30,6 +30,9 @@ public:
 	//BLOCKING FUNCTION CALL UNTIL LINE CAN SEND
 	void print(std::string text);
 
+	//check to see if a packet is available over UART
+	bool available();
+
 	//read a complete line from the serial port
 	//ENSURE THAT LINES ARE TERMINATED WITH "\r\n" IN THAT ORDER
 	//BLOCKING FUNCTION CALL UNTIL LINE IS RECEIVED

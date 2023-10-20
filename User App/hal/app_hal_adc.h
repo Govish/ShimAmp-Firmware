@@ -64,9 +64,10 @@ public:
 
 	//adjust the gain and the offset of the ADC
 	//just modifying the control gains and offset since we'll have to do computation with this anyway
-	//GAIN TRIM IS A RATIO THAT MULTIPLIES EXISTING GAIN BY THE FACTOR
-	//OFFSET TRIM IS IN UNITS OF COUNTS AND IS ADDED TO THE EXISTING OFFSET
-	void trim(float gain_trim, float offset_trim);
+	//GAIN in units ratio that's multiplying the existing gain
+	//OFFSET in unit `ADC_counts` that's summing into the existing offset
+	void trim(float _gain_trim, float _offset_trim);
+	std::pair<float, float> get_trim(); //returns gain_trim, offset_trim
 
 	//get whether there has been a new ADC reading since the previous value had been read out
 	bool get_updated();
@@ -78,7 +79,7 @@ public:
 	//pair is in the form of <gain, offset>, such that gain, offset satisfy the following equation (adc voltage input, adc code output)
 	// ADC_CODE = `gain` * TERMINAL_VOLTAGE + `offset`
 	//heavily optimizing since will be called from interrupt context (though this is a relatively simple function)
-	std::pair<float, float> __attribute__((optimize("O3"))) get_gain_offset(); //[gain, offset]
+	std::pair<float, float> get_gain_offset(); //[gain, offset]
 
 private:
 
@@ -94,6 +95,10 @@ private:
 	//will initialize these to different values based off of differential or single-ended operation
 	float gain_v_to_counts;
 	float offset_counts;
+
+	//additionally, store the trim value related to the ADC channel
+	float gain_trim = 1;
+	float offset_trim = 0;
 
 	//store a reference to the hardware
 	//adc readings and recently updated flags will be stored with the hardware instance

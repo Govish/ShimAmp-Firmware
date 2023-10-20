@@ -8,6 +8,9 @@
 #ifndef POWER_STAGE_CONTROL_APP_POWER_STAGE_TOP_LEVEL_H_
 #define POWER_STAGE_CONTROL_APP_POWER_STAGE_TOP_LEVEL_H_
 
+//c++ includes
+#include <stddef.h> //for size_t
+
 //HAL type includes
 #include "app_hal_hrpwm.h"
 #include "app_hal_dio.h"
@@ -16,12 +19,16 @@
 //Higher level functions related to power stage control/regulation
 #include "app_power_stage_drive.h"
 #include "app_power_stage_sampler.h"
+#include "app_control_regulator.h"
+
+//configuration informatin
+#include "app_config.h"
 
 class Power_Stage_Subsystem {
 public:
 	//======================================================= CONFIGURATION DETAILS STRUCT =======================================================
 	//following the paradigm of passing pre-instantiated configuration information to the constructor
-	struct Configuration_Details {
+	struct Channel_Hardware_Details {
 		//how the hardware connects to the power stage IC
 		const HRPWM::HRPWM_Hardware_Channel& pos_channel;
 		const HRPWM::HRPWM_Hardware_Channel& neg_channel;
@@ -29,12 +36,10 @@ public:
 		const bool en_active_high;
 
 		//ADC channels for measuring control variables
-		Triggered_ADC::Triggered_ADC_Hardware_Channel& vfine;
-		Triggered_ADC::Triggered_ADC_Hardware_Channel& vcoarse;
 		Triggered_ADC::Triggered_ADC_Hardware_Channel& ifine;
 		Triggered_ADC::Triggered_ADC_Hardware_Channel& icoarse;
 	};
-	static Configuration_Details POWER_STAGE_CHANNEL_0;
+	static Channel_Hardware_Details POWER_STAGE_CHANNEL_0;
 
 	//============================================= ENUM CLASS TO ENABLE DIFFERENT OPERATING MODES OF STAGE =============================================
 
@@ -51,7 +56,7 @@ public:
 	//======================================================= PUBLIC METHODS =======================================================
 
 	//constructor; delete copy constructor and assignment operator to avoid weird hardware conflicts
-	Power_Stage_Subsystem(Configuration_Details& config_details);
+	Power_Stage_Subsystem(Channel_Hardware_Details& hardware_details, Configuration::Configuration_Params& _config, const size_t _CHANNEL_NUM);
 	Power_Stage_Subsystem(Power_Stage_Subsystem const&) = delete;
 	void operator=(Power_Stage_Subsystem const&) = delete;
 
@@ -63,11 +68,15 @@ public:
 	void init(); //call from the setup function
 	void loop(); //call from the loop function
 
-	//have a special method that tweaks the switching frequency of ALL power stages
+	//have a special method that tweaks the switching frequencies or controller frequencies of ALL power stages
 	//basically a higher level function that tunnels down to the HAL level (along with changing parameters at this higher level)
-	//also includes a corresponding getter method
+	//static methods to ensure all instances are synchronized with this change
+	//the implementation of these functions is a little hacky, but I think they should get the job done
 	static bool set_switching_frequency(float fsw_hz);
+	static bool set_controller_frequency(float fc_hz);
+	static bool set_operating_frequencies(float fsw_hz, float fc_hz);
 	static float get_switching_frequency();
+	static float get_controller_frequency();
 
 	//### GETTER METHODS ###
 	//these methods will return a pointer to the constituent instances of the power stage controller
@@ -78,37 +87,43 @@ public:
 	Power_Stage_Wrapper& get_direct_stage_control_instance();
 
 	//return a reference to the sampler (along with whether ADC trigger source is running)
-	//allows for terminal voltage/current measurement, and ADC trimming
-	std::pair<Sampler_Wrapper&, bool> get_vi_sampler_instance();
+	//allows for current measurement, and ADC trimming
+	Sampler_Wrapper& get_sampler_instance();
 
 private:
-	//##### all these objects will be initialized in the constructor of `Comms_Exec_Subsystem` #####
+	//=============================== PRIVATE METHOD TO UPDATE INSTANCES WHEN FSW UPDATED =====================================
+	bool recompute_rates(float fsw_hz = -1, float fc_hz = -1);
 
+
+	//##### all these objects will be initialized in the constructor of `Comms_Exec_Subsystem` #####
 	//======================== Everything Power-stage Related =========================
-	//TODO: power stage should own enable pin and HRPWM channels
-	DIO en_pin;
-	HRPWM chan_pwm_pos; //pwm that drives the positive-side half-bridge
-	HRPWM chan_pwm_neg; //pwm that drives the negative-side half-bridge
 	Power_Stage stage; //manage a power stage
 	Power_Stage_Wrapper stage_wrapper; //wrap the power stage with this function when handing off to the public
 
 	//====================== Everything Sampler Related ====================
-	Sampler vi_sampler; //instance that reads the voltages and currents at/through the output
-	Sampler_Wrapper vi_sampler_wrapper; //wrap the sampler in with this before handing it off to the public
+	Sampler current_sampler; //instance that reads the current through the output
+	Sampler_Wrapper current_sampler_wrapper; //wrap the sampler in with this before handing it off to the public
 
 	//====================== Everything Regulator Related =====================
-
+	Regulator regulator; //instance that actually does the current regulation
 
 	//====================== Everything Setpoint Controller Related ===================
 
 	/*
 	 * TODO:
-	 *  - regulator
 	 *  - setpoint controller
-	 *  - etc.
+	 *  - dither?
+	 *  - ADC calibrator? (this could be a host-side utility)
 	 */
 	//==================== State-esque member variables ======================
+	static std::array<Power_Stage_Subsystem*, Configuration::POWER_STAGE_COUNT> ALL_POWER_STAGES; //container of all power stage instances
+	static size_t INSTANCE_COUNT; //helps us index into the above array, also holds number of instantiated power stages
 	Stage_Mode operating_mode = Stage_Mode::DISABLED; //start with the stage disabled
+
+	//keeping config instance'd in order to simplify most of the implementation
+	//though it does make updating switching and controller frequency a little cumbersome
+	Configuration::Configuration_Params& config; //config instance to access the global config structure
+	const size_t CHANNEL_NUM; //basically the channel ID assigned to this power stage--lets us index into configuration (and maybe other things in the future)
 };
 
 

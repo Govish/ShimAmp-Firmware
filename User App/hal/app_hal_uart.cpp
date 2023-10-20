@@ -72,6 +72,7 @@ size_t UART::get_packet(std::span<uint8_t, std::dynamic_extent> rx_packet) {
 void UART::attach_uart_error_callback(const callback_function_t _err_cb) { this->err_cb = _err_cb; }
 bool UART::ready_to_send() { return hardware.huart->gState == HAL_UART_STATE_READY; }
 bool UART::uart_ok() { return HAL_UART_GetError(hardware.huart) == HAL_UART_ERROR_NONE; }
+bool UART::available() { return received_packet_pending; }
 
 void UART::RX_interrupt_handler() {
 	//we've received a packet and we're waiting for the main thread to process it

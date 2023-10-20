@@ -28,6 +28,10 @@ void Debug_Print::print(std::string text) {
 	debug_serial_port.transmit(spn(tx_conversion_buffer, text.size()));
 }
 
+bool Debug_Print::available() {
+	return debug_serial_port.available();
+}
+
 std::string Debug_Print::read() {
 	//poll the UART, waiting until data is available; then copy any data into the RX intermediate buffer
 	size_t packet_size = 0;

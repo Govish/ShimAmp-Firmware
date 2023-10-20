@@ -69,6 +69,7 @@ public:
 	void attach_uart_error_callback(const callback_function_t _err_cb); //function called when some UART error state occurs; MAY BE CALLED FROM ISR CONTEXT
 	bool ready_to_send(); //return true if the transmitter is ready to send data
 	bool uart_ok(); //return true if there are no error states in the UART
+	bool available(); //return true if we have a packet waiting
 
 	//these functions are just called by interrupts; USER SHOULDN'T INTERACT WITH THESE
 	void __attribute__((optimize("O3"))) RX_interrupt_handler();

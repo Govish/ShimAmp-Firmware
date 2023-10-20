@@ -38,11 +38,8 @@ public:
 	//following the paradigm of passing pre-instantiated configuration information to the constructor
 	struct Configuration_Details {
 		UART::UART_Hardware_Channel& uart_channel;
-		const uint16_t crc_poly;
-		const uint16_t crc_seed;
-		const uint16_t crc_xor_out;
 	};
-	static Configuration_Details COMMS_EXEC_CONFIG; //our main source of configuration information
+	static Configuration_Details COMMS_CHANNEL_0; //our main source of configuration information
 
 	//======================================================= PUBLIC METHODS =======================================================
 

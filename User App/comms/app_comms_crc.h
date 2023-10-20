@@ -26,6 +26,7 @@ extern "C" {
 class Comms_CRC {
 
 public:
+	Comms_CRC(); //initialize with default poly, seed, and xor
 	Comms_CRC(const uint16_t _poly, const uint16_t _seed, const uint16_t _xor_out);
 
 	//provide a c++ style interface to compute and validate a CRC
@@ -33,6 +34,14 @@ public:
 	bool validate_crc(const std::span<uint8_t, std::dynamic_extent> buf);
 
 private:
+	//================================= SYSTEM CRC PARAMETERS - USE THIS =================================
+
+	//CRC-16/AUG-CCITT, common 16-bit CRC parameters
+	const uint16_t DEFAULT_POLYNOMIAL = 0x1021;
+	const uint16_t DEFAULT_SEED = 0x1D0F;
+	const uint16_t DEFAULT_XOR_OUT = 0x0000;
+
+	//======================================== INSTANCE VARIABLES=========================================
 	const uint16_t polynomial; //actual CRC polynomial we'll compute with
 	const uint16_t seed; //value CRC computation is initialized with
 	const uint16_t xor_out; //value we need to xor the CRC result with when checking

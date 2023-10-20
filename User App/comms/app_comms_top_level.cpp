@@ -19,14 +19,9 @@
 
 //================================= DEFINING STANDARD CONFIGURATION ==============================
 
-Comms_Exec_Subsystem::Configuration_Details Comms_Exec_Subsystem::COMMS_EXEC_CONFIG = {
+Comms_Exec_Subsystem::Configuration_Details Comms_Exec_Subsystem::COMMS_CHANNEL_0 = {
 		//run the main communication system off of LPUART
 		.uart_channel = UART::LPUART,
-
-		//CRC-16/AUG-CCITT, common 16-bit CRC parameters
-		.crc_poly = 0x1021,
-		.crc_seed = 0x1D0F,
-		.crc_xor_out = 0x0000,
 };
 
 //======================================= PUBLIC METHODS =====================================
@@ -35,7 +30,7 @@ Comms_Exec_Subsystem::Configuration_Details Comms_Exec_Subsystem::COMMS_EXEC_CON
 Comms_Exec_Subsystem::Comms_Exec_Subsystem(Configuration_Details& config_details):
 		serial_comms(config_details.uart_channel, Cobs::CHAR_START_OF_FRAME, Cobs::CHAR_END_OF_FRAME, serial_tx_buffer, serial_rx_buffer),
 		cobs(),
-		crc(config_details.crc_poly, config_details.crc_seed, config_details.crc_xor_out),
+		crc(), //use default CRC parameters (CRC-16/AUG-CCITT)
 		parser(crc)
 {}
 

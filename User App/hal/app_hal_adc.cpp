@@ -85,15 +85,22 @@ void Triggered_ADC::init() {
 }
 
 //correct for ADC reading inaccuracies with this function
-//adds gain and offset at the hardware level, so slightly higher performance than software implementation
-void Triggered_ADC::trim(float gain_trim, float offset_trim) {
+//won't actually scale the ADC value, basically just scaling the conversion constants returned by get_gain_offset()
+void Triggered_ADC::trim(float _gain_trim, float _offset_trim) {
 	//don't allow gain_trim to be 0--unrecoverable
 	if(gain_trim == 0) return;
 
 	//perform relative modification of the gain and offset values
-	gain_v_to_counts *= gain_trim;
-	offset_counts += offset_trim;
+	gain_trim *= _gain_trim;
+	offset_trim += _offset_trim;
 }
+
+//return the accumulated trim applied to the ADC
+std::pair<float, float> Triggered_ADC::get_trim() {
+	return std::make_pair(gain_trim, offset_trim);
+}
+
+
 
 //store the appropriate conversion complete callback passed in
 void Triggered_ADC::attach_cb(callback_function_t cb) {
@@ -114,7 +121,7 @@ uint16_t Triggered_ADC::get_val(const bool clear_flag) {
 
 std::pair<float, float> Triggered_ADC::get_gain_offset() {
 	//just return the internally maintained gain and offset values
-	return std::make_pair(gain_v_to_counts, offset_counts);
+	return std::make_pair(gain_v_to_counts * gain_trim, offset_counts + offset_trim);
 }
 
 

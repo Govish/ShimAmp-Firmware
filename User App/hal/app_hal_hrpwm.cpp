@@ -83,6 +83,8 @@ uint16_t HRPWM::GET_PERIOD() {
 //application can get the actual ADC trigger frequency from the getter function (useful for controller)
 //these values can be updated even when timer is ticking
 bool HRPWM::SET_ADC_TRIGGER_FREQUENCY(float ftrig_hz) {
+	if(GET_ALL_ENABLED()) return false; //don't adjust the period of the trigger if timers are enabled
+
 	//bounds check the desired trigger frequency
 	if(ftrig_hz > GET_FSW() || (ftrig_hz * (ADC_POSTSCALER_MASK + 1)) < GET_FSW()) return false;
 

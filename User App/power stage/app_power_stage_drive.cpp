@@ -5,12 +5,23 @@
  *      Author: Ishaan
  */
 
-#include <app_power_stage_drive.h>
+#include "app_power_stage_drive.h"
 
 #include <algorithm> //for min, max, and clamp
 
-//drop the passed references into the class
-Power_Stage::Power_Stage(HRPWM& _bridge_pos, HRPWM& _bridge_neg, DIO& _bridge_en, bool _EN_ACTIVE_HIGH):
+//=================================== STATIC MEMBER INITIALIZATION =====================================
+
+//need to be properly initialized by a call to GET_FSW()
+uint16_t Power_Stage::bridge_min_on_count = 0;
+uint16_t Power_Stage::bridge_max_on_count = 0;
+float Power_Stage::max_drive_delta = 0;
+
+//======================================== CLASS METHODS =====================================
+
+//instantiate hardware contorl instances based off of passed hardware
+Power_Stage::Power_Stage(	const HRPWM::HRPWM_Hardware_Channel& _bridge_pos,
+							const HRPWM::HRPWM_Hardware_Channel& _bridge_neg,
+							const PinMap::DIO_Hardware_Channel& _bridge_en, bool _EN_ACTIVE_HIGH = true):
 	bridge_pos(_bridge_pos),
 	bridge_neg(_bridge_neg),
 	bridge_en(_bridge_en),
@@ -65,13 +76,9 @@ bool Power_Stage::set_drive(float drive) {
 	//bounds check
 	if(drive < -1 || drive > 1) return false;
 
-	//ensure min and max counts are updated
-	get_control_parameters();
-
 	//convert floating point drive into an int16_t drive
 	//based off of min/max allowable counts
-	float drive_delta = (float)(bridge_max_on_count - bridge_min_on_count);
-	int16_t drive_count = (int16_t)(drive_delta * drive);
+	int16_t drive_count = (int16_t)(max_drive_delta * drive);
 
 	//write to the H-bridge with the particular drive value
 	set_drive_raw(drive_count);
@@ -83,7 +90,11 @@ bool Power_Stage::set_drive(float drive) {
 //At zero level, both bridge halves will be running at their min duty cycle
 //in-phase, so will just produce a common-mode voltage at the output (which should be better than differential from a noise perspective)
 //the drive will just add to the minimum `on count` to inject current into the coil
-void Power_Stage::set_drive_raw(int16_t drive) {
+void Power_Stage::set_drive_raw(float raw_drive) {
+	//regulator could potentially exceed safe drive values--clamp (and int16_t cast) here
+	int16_t drive = (int16_t)std::clamp(raw_drive, -max_drive_delta, max_drive_delta);
+
+	//and actually drive the stages now
 	if(drive >= 0) {
 		bridge_pos.set_duty_raw((uint16_t)drive + bridge_min_on_count); //drive positive bridge
 		bridge_neg.set_duty_raw(bridge_min_on_count); //idle negative bridge
@@ -100,9 +111,6 @@ bool Power_Stage::set_drive_halves(float drive_pos, float drive_neg) {
 	//bounds check, ensure drive values are between 0 and 1
 	if(drive_pos < 0 || drive_pos > 1) return false;
 	if(drive_neg < 0 || drive_neg > 1) return false;
-
-	//ensure min and max counts are updated
-	get_control_parameters();
 
 	if(drive_pos == 0) bridge_pos.force_low(); //acceptable to fully turn off half-bridge
 	else {
@@ -134,18 +142,12 @@ bool Power_Stage::set_drive_halves(float drive_pos, float drive_neg) {
 //returns a +/- value that indicates whether stage is driving negative or positive
 //normally within [-1 to 1] range but could potentially exceed that if raw drive was commanded incorrectly
 float Power_Stage::get_drive_duty() {
-	//ensure min and max counts are updated
-	get_control_parameters();
-
 	//pull out the raw counts value
 	float raw_drive = (float)get_drive_raw();
 
-	//figure out the drive range for "full throttle"
-	float max_drive = (float)(bridge_max_on_count - bridge_min_on_count);
-
 	//return a normalized version of the drive amount
 	//can theoretically outside of [-1, 1] in weird operating regimes, so just make sure upstream software can handle
-	return raw_drive / max_drive;
+	return raw_drive / max_drive_delta;
 }
 
 int16_t Power_Stage::get_drive_raw() {
@@ -167,40 +169,38 @@ std::pair<float, float> Power_Stage::get_drive_halves() {
 //setter/getter method for switching frequency
 bool Power_Stage::SET_FSW(float fsw_hz) {
 	if(fsw_hz < POWER_STAGE_FSW_MIN || fsw_hz > POWER_STAGE_FSW_MAX) return false; //more aggressive circuitry bounds here
-	return HRPWM::SET_FSW(fsw_hz);
-}
+	if(!HRPWM::SET_FSW(fsw_hz)) return false; //if setting the frequency wasnt' successful, just return
 
-float Power_Stage::GET_FSW() {
-	return HRPWM::GET_FSW();
-}
-
-//get control parameters relevant to the power stage, i.e.
-//maximum allowable raw commanded value (can pass positive <this_value> and negative <this_value>
-//forward path gain from the power stage when commanded with the max possible value
-std::pair<uint16_t, float> Power_Stage::get_control_parameters() {
-	//internally update control parameters too
-	bridge_period_count = HRPWM::GET_PERIOD();
-
+	//if setting frequency was successful, update the min and max allowable duty cycles
 	//#####compute min/max counts based on fsw and HRTIM period count value
 	float fsw = GET_FSW();
-	float f_per_count = (float)bridge_period_count;
+	float f_per_count = (float)HRPWM::GET_PERIOD();
 
 	//compute min duty cycle (in counts units)
 	uint16_t count_min_duty = (uint16_t)(f_per_count * POWER_STAGE_DUTY_MIN);
 	uint16_t count_min_ontime = (uint16_t)(f_per_count * POWER_STAGE_TON_MIN * fsw);
 	bridge_min_on_count = std::max(count_min_duty, count_min_ontime); //limit to higher of these two values
 
-	//compute max duty cycle (in counds units)
+	//compute max duty cycle (in counts units)
 	uint16_t count_max_duty = (uint16_t)(f_per_count * POWER_STAGE_DUTY_MAX);
 	uint16_t count_max_ontime = (uint16_t)(f_per_count * POWER_STAGE_TON_MAX * fsw);
 	bridge_max_on_count = std::min(count_max_duty, count_max_ontime); //limit to lower of these two values
 
-	//compute the potential range of
-	uint16_t drive_delta = bridge_max_on_count - bridge_min_on_count;
+	//compute the maximum extreme commanded value we can write to the stage
+	max_drive_delta = (float)(bridge_max_on_count - bridge_min_on_count);
 
-	//return the abs() of the maximum power stage drive value
-	//and the power stage gain associated with commanding that particular drive value
-	return std::make_pair(drive_delta, (float)drive_delta/f_per_count);
+	return true;
+}
+
+float Power_Stage::GET_FSW() {
+	return HRPWM::GET_FSW();
+}
+
+//get the forward path gain of the stage, that's all
+//an increase in commanded value by 1 unit corresponds to 1/PERIOD increase in duty cycle
+//so 1/PERIOD is our forward path gain through here
+float Power_Stage::get_gain() {
+	return 1/((float)HRPWM::GET_PERIOD());
 }
 
 

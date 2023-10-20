@@ -15,6 +15,11 @@
 
 #include "app_comms_crc.h"
 
+Comms_CRC::Comms_CRC():
+	//empty constructor initializes stuff with defaults
+	polynomial(DEFAULT_POLYNOMIAL), seed(DEFAULT_SEED), xor_out(DEFAULT_XOR_OUT)
+{}
+
 Comms_CRC::Comms_CRC(const uint16_t _poly, const uint16_t _seed, const uint16_t _xor_out):
 	polynomial(_poly), seed(_seed), xor_out(_xor_out)
 {
