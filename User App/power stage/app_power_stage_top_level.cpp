@@ -12,6 +12,9 @@
 
 //============================= STATIC MEMBER INITIALIZATION ============================
 
+//initialize config to a nullptr, but update it to something legit after first instantiation
+Configuration::Configuration_Params* Power_Stage_Subsystem::config = nullptr;
+
 size_t Power_Stage_Subsystem::INSTANCE_COUNT = 0;
 std::array<Power_Stage_Subsystem*, Configuration::POWER_STAGE_COUNT> Power_Stage_Subsystem::ALL_POWER_STAGES = {};
 
@@ -28,21 +31,30 @@ Power_Stage_Subsystem::Channel_Hardware_Details Power_Stage_Subsystem::POWER_STA
 //================================= PUBLIC MEMBER FUNCTIONS =============================
 
 //constructor
-Power_Stage_Subsystem::Power_Stage_Subsystem(Power_Stage_Subsystem::Channel_Hardware_Details& hardware_details, Configuration::Configuration_Params& _config, const size_t _CHANNEL_NUM):
+Power_Stage_Subsystem::Power_Stage_Subsystem(Power_Stage_Subsystem::Channel_Hardware_Details& hardware_details, Configuration::Configuration_Params* _config, const size_t _CHANNEL_NUM):
 		//create a power stage instance and a corresponding wrapper
 		stage(hardware_details.pos_channel, hardware_details.neg_channel, hardware_details.en_pin_name, hardware_details.en_active_high),
 		stage_wrapper(stage),
 
 		//create a sampler and its corresponding wrapper
-		current_sampler(hardware_details.ifine, hardware_details.icoarse, _config, _CHANNEL_NUM),
+		//need to dereference `_config` so we can reference the original struct
+		current_sampler(hardware_details.ifine, hardware_details.icoarse, *_config, _CHANNEL_NUM),
 		current_sampler_wrapper(current_sampler),
 
-		//instantiate the regulator and pass it the power stage and sampler
-		regulator(stage, current_sampler, _config, _CHANNEL_NUM),
+		//instantiate the setpoint controller and its wrapper
+		setpoint(*_config, _CHANNEL_NUM),
+		setpoint_wrapper(setpoint),
 
-		config(_config), //reference the active configuration happening here
+		//instantiate the regulator and pass it the power stage, setpoint controller, and sampler
+		//need to dereference `_config` so we can reference the original struct
+		regulator(stage, current_sampler, setpoint, *_config, _CHANNEL_NUM),
+		regulator_wrapper(regulator),
+
 		CHANNEL_NUM(_CHANNEL_NUM) //and store the channel number we've been labeled
 {
+	//point to the config structure passed in
+	config = _config;
+
 	//create a pointer to the instance we just created (helps when calling all instances from static function)
 	ALL_POWER_STAGES[INSTANCE_COUNT] = this;
 	INSTANCE_COUNT++;
@@ -60,11 +72,14 @@ void Power_Stage_Subsystem::init() {
 	//initialize the sampler
 	current_sampler.init();
 
+	//initialize the setpoint controller
+	setpoint.init();
+
 	//initialize our regulator
 	regulator.init();
 
 	//and initialize the controller and switching frequencies to what the config says
-	set_operating_frequencies(config.DESIRED_SWITCHING_FREQUENCY, config.DESIRED_SAMPLING_FREQUENCY);
+	set_operating_frequencies(config->DESIRED_SWITCHING_FREQUENCY, config->DESIRED_SAMPLING_FREQUENCY);
 
 	//after initialization, power stage system is disabled
 	operating_mode = Stage_Mode::DISABLED;
@@ -77,49 +92,62 @@ void Power_Stage_Subsystem::loop() {
 
 //##################### POWER STAGE SWITCHING/SAMPLING FREQUENCY FUNCTIONS #####################
 
-bool Power_Stage_Subsystem::recompute_rates(float fsw_hz, float fc_hz) {
-	//update the configuration with our desired frequencies (if we didn't pass in bogus values)
-	//have to update configs here since config is tied to an instance
-	if(fsw_hz > 0) config.DESIRED_SWITCHING_FREQUENCY = fsw_hz;
-	if(fc_hz > 0) config.DESIRED_SAMPLING_FREQUENCY = fc_hz;
+bool Power_Stage_Subsystem::recompute_rates() {
+	/*
+	 * NOTE: AT THIS POINT IN TIME, SWITCHING AND SAMPLING FREQUENCIES AREN'T UPDATED IN CONFIG!
+	 * HOWEVER, POWER STAGE AND ADC SAMPLING FREQUENCIES ARE UPDATED, SO READ FREQUENCIES FROM THOSE FUNCTIONS
+	 */
 
-	//additionally, recompute some regulation constants given this new switching frequency
-	//this will take care of adjusting the ADC trigger frequency and any other regulation-related functions
-	return regulator.recompute_rate();
+	//recompute the rates for everything related to the regulator (from active configuration values)
+	return regulator.recompute_rate(config->POWER_STAGE_CONFIGS[CHANNEL_NUM].K_DC,
+									config->POWER_STAGE_CONFIGS[CHANNEL_NUM].F_CROSSOVER,
+									config->POWER_STAGE_CONFIGS[CHANNEL_NUM].LOAD_RESISTANCE,
+									config->POWER_STAGE_CONFIGS[CHANNEL_NUM].LOAD_CHARACTERISTIC_FREQ );
 }
 
 //forwards to `set_operating_frequencies`
 bool Power_Stage_Subsystem::set_controller_frequency(float fc_hz) {
 	//don't update the switching frequency
-	return set_operating_frequencies(-1, fc_hz);
+	return set_operating_frequencies(config->DESIRED_SWITCHING_FREQUENCY, fc_hz);
 }
 
 //forwards to `set_operating_frequencies`
 bool Power_Stage_Subsystem::set_switching_frequency(float fsw_hz) {
 	//don't update the controller frequency
-	return set_operating_frequencies(fsw_hz, -1);
+	return set_operating_frequencies(fsw_hz, config->DESIRED_SAMPLING_FREQUENCY);
 }
 
 //returns true if successfully set
 //Power Stage and HRPWM will manage bounds checking and safety of operation
 bool Power_Stage_Subsystem::set_operating_frequencies(float fsw_hz, float fc_hz) {
 	//attempt to set the switching frequency if we wanna update this
-	if(fsw_hz > 0)
-		if(!Power_Stage::SET_FSW(fsw_hz))
-			return false; //don't proceed if that didn't go right
+	if(!Power_Stage::SET_FSW(fsw_hz)) {
+		//load in previously saved (good) values
+		set_operating_frequencies(config->DESIRED_SWITCHING_FREQUENCY, config->DESIRED_SAMPLING_FREQUENCY);
+		return false; //don't proceed if that didn't go right
+	}
 
 	//attempt to set the controller/sampling frequency if we wanna update this
-	if(fc_hz > 0)
-		if(!HRPWM::SET_ADC_TRIGGER_FREQUENCY(fc_hz))
-			return false;
+	if(!HRPWM::SET_ADC_TRIGGER_FREQUENCY(fc_hz)) {
+		//load in previously saved (good) values
+		set_operating_frequencies(config->DESIRED_SWITCHING_FREQUENCY, config->DESIRED_SAMPLING_FREQUENCY);
+		return false;
+	}
 
 	//globally updated the frequencies that we wanted, now just update the instances
 	for(Power_Stage_Subsystem* sys : ALL_POWER_STAGES) {
 		//if updating a single channel doesn't go right, just leave
 		if(sys != nullptr)
-			if(!sys->recompute_rates(fsw_hz, fc_hz)) return false;
-		//TODO: gracefully handle resetting everything if a single update doesn't work?
+			if(!sys->recompute_rates()) {
+				//load in previously saved (good) values
+				set_operating_frequencies(config->DESIRED_SWITCHING_FREQUENCY, config->DESIRED_SAMPLING_FREQUENCY);
+				return false;
+			}
 	}
+
+	//if everything goes right, we can now update our configuration with our new (good) values
+	config->DESIRED_SAMPLING_FREQUENCY = fc_hz;
+	config->DESIRED_SWITCHING_FREQUENCY = fsw_hz;
 
 	//all controllers were successfully updated
 	return true;
@@ -174,7 +202,7 @@ bool Power_Stage_Subsystem::set_mode(Stage_Mode mode) {
 			//ensure power stage is locked out to external writes
 			stage_wrapper.IS_LOCKED_OUT = true;
 
-			//just need to enable the regulator, this should take care of everything
+			//just need to enable the regulator, this should take care of everything in automatic mode
 			regulator.enable();
 
 			return true;
@@ -207,4 +235,8 @@ Power_Stage_Wrapper& Power_Stage_Subsystem::get_direct_stage_control_instance() 
 
 Sampler_Wrapper& Power_Stage_Subsystem::get_sampler_instance() {
 	return current_sampler_wrapper; //access controlled verison of the sampler
+}
+
+Regulator_Wrapper& Power_Stage_Subsystem::get_regulator_instance() {
+	return regulator_wrapper; //access controlled version of the regulator
 }

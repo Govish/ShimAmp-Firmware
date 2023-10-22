@@ -26,6 +26,7 @@ static const Configuration::Power_Stage_Channel_Config DEFAULT_CONFIG_PS_CHANNEL
 		//controller parameters
 		.K_DC = 1000.0, //controller DC gain ~1000
 		.F_CROSSOVER = 20000.0, //current controller should cross over around 20kHz
+		.SETPOINT_RECON_BANDWIDTH = 10000.0, //setpoint reconstruction filter should start rolling off here
 
 		//parameters for the shim coil load
 		.LOAD_RESISTANCE = 100e-3, //default to 100mR load
@@ -44,6 +45,7 @@ const Configuration::Configuration_Params Configuration::DEFAULT_CONFIG = {
 		//global power stage parameters
 		.DESIRED_SWITCHING_FREQUENCY = 1.5e6, //start with a 1.5MHz switching frequency
 		.DESIRED_SAMPLING_FREQUENCY = 250e3, //and a 250kHz current sampling frequency
+		.DESIRED_SETPOINT_TICK_FREQUENCY = 40e3, //arbitrary waveforms were sampled at this rate
 
 		//power stage configuration parameters
 		.POWER_STAGE_CONFIGS = {
@@ -80,5 +82,5 @@ bool Configuration::load(size_t config_num) {
 
 bool Configuration::validate(Configuration_Params& to_validate) {
 	//just check if the CRC is zero; nothing too fancy (or robust I guess)
-	return to_validate.CONFIG_CRC = 0;
+	return to_validate.CONFIG_CRC == 0;
 }

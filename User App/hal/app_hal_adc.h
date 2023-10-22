@@ -5,8 +5,6 @@
  *      Author: Ishaan
  *
  *
- *  near term TODO:
- *  much later TODO: gain and offset
  */
 
 #ifndef HAL_APP_HAL_ADC_H_

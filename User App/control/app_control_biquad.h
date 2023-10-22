@@ -31,6 +31,9 @@ public:
 		bool is_nonzero() { return a_1 || a_2 || b_0 || b_1 || b_2; }; //biquad is useful controller if there's at least one non-zero term
 	};
 
+	//make generic 2nd order lowpass filter coefficients specified by these parameters
+	static Biquad_Params make_lowpass(float corner_freq, float Q, float sampling_freq);
+
 	//========================================= BIQUAD CLASS ===============================================
 
 	//don't really do anything in the constructor, just initialize some defaults into here
@@ -44,7 +47,7 @@ public:
 
 	//run one IIR computation step
 	//pass the input, filter will return an output
-	virtual float compute(float input); //allow for override in any derived types
+	virtual float __attribute__((optimize("O3"))) compute(float input); //allow for override in any derived types
 
 	//forces the filter to a steady-state value
 	//default assumes the input is 0; but can force steady state to any input value

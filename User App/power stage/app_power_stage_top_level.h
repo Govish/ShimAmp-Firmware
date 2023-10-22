@@ -20,6 +20,7 @@
 #include "app_power_stage_drive.h"
 #include "app_power_stage_sampler.h"
 #include "app_control_regulator.h"
+#include "app_setpoint_controller.h"
 
 //configuration informatin
 #include "app_config.h"
@@ -56,7 +57,8 @@ public:
 	//======================================================= PUBLIC METHODS =======================================================
 
 	//constructor; delete copy constructor and assignment operator to avoid weird hardware conflicts
-	Power_Stage_Subsystem(Channel_Hardware_Details& hardware_details, Configuration::Configuration_Params& _config, const size_t _CHANNEL_NUM);
+	//have to take config as a pointer, because I need to point to the original config struct
+	Power_Stage_Subsystem(Channel_Hardware_Details& hardware_details, Configuration::Configuration_Params* _config, const size_t _CHANNEL_NUM);
 	Power_Stage_Subsystem(Power_Stage_Subsystem const&) = delete;
 	void operator=(Power_Stage_Subsystem const&) = delete;
 
@@ -86,13 +88,17 @@ public:
 	//return a reference to the power stage instance for manual control (access controlled appropriately)
 	Power_Stage_Wrapper& get_direct_stage_control_instance();
 
-	//return a reference to the sampler (along with whether ADC trigger source is running)
+	//return a reference to the sampler
 	//allows for current measurement, and ADC trimming
 	Sampler_Wrapper& get_sampler_instance();
 
+	//return a reference to the regulator
+	//allows updates to control parameters and whether the regulator is running
+	Regulator_Wrapper& get_regulator_instance();
+
 private:
-	//=============================== PRIVATE METHOD TO UPDATE INSTANCES WHEN FSW UPDATED =====================================
-	bool recompute_rates(float fsw_hz = -1, float fc_hz = -1);
+	//=============================== PRIVATE METHOD TO UPDATE INSTANCES WHEN OPERATING FREQUENCIES UPDATED =====================================
+	bool recompute_rates();
 
 
 	//##### all these objects will be initialized in the constructor of `Comms_Exec_Subsystem` #####
@@ -102,27 +108,29 @@ private:
 
 	//====================== Everything Sampler Related ====================
 	Sampler current_sampler; //instance that reads the current through the output
-	Sampler_Wrapper current_sampler_wrapper; //wrap the sampler in with this before handing it off to the public
+	Sampler_Wrapper current_sampler_wrapper; //wrap the sampler with this before handing it off to the public
+
+	//====================== Everything Setpoint Controller Related ===================
+	Setpoint setpoint; //instance that actually generates the current setpoint
+	Setpoint_Wrapper setpoint_wrapper; //wrap the setpoint controller with this before handing it off to the public
 
 	//====================== Everything Regulator Related =====================
 	Regulator regulator; //instance that actually does the current regulation
+	Regulator_Wrapper regulator_wrapper; //wrap the regulator with this before handing it off to the public
 
-	//====================== Everything Setpoint Controller Related ===================
 
 	/*
 	 * TODO:
-	 *  - setpoint controller
 	 *  - dither?
-	 *  - ADC calibrator? (this could be a host-side utility)
 	 */
 	//==================== State-esque member variables ======================
 	static std::array<Power_Stage_Subsystem*, Configuration::POWER_STAGE_COUNT> ALL_POWER_STAGES; //container of all power stage instances
 	static size_t INSTANCE_COUNT; //helps us index into the above array, also holds number of instantiated power stages
 	Stage_Mode operating_mode = Stage_Mode::DISABLED; //start with the stage disabled
 
-	//keeping config instance'd in order to simplify most of the implementation
-	//though it does make updating switching and controller frequency a little cumbersome
-	Configuration::Configuration_Params& config; //config instance to access the global config structure
+	//have to make configuration static in order to have a clean implementation of frequency setters
+	//configuration will be assigned during construction; so shouldn't be that big of a deal
+	static Configuration::Configuration_Params* config; //config instance to access the global config structure
 	const size_t CHANNEL_NUM; //basically the channel ID assigned to this power stage--lets us index into configuration (and maybe other things in the future)
 };
 

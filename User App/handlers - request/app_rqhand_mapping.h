@@ -24,15 +24,34 @@ namespace RQ_Mapping {
 		TEST_FLOAT 		= (uint8_t)0x03,
 		TEST_STRING 	= (uint8_t)0x04,
 
-		//commands to disable/enable the power stage in different operating modes
+		//power stage global information
 		STAGE_ENABLE_STATUS		= (uint8_t)0x10,
+		STAGE_GET_FSW			= (uint8_t)0x11,
 
-		//set the switching frequency of the power stage
-		STAGE_GET_FSW			= (uint8_t)0x14,
+		//power stage requests (fair game whenever, not just in manual mode)
+		STAGE_GET_DRIVE			= (uint8_t)0x17,
+		STAGE_GET_DUTIES		= (uint8_t)0x18,
 
-		//power stage requests
-		STAGE_GET_DRIVE			= (uint8_t)0x1A,
-		STAGE_GET_DUTIES		= (uint8_t)0x1E,
+		//control-related functions
+		CONTROL_GET_FREQUENCY	= (uint8_t)0x21,
+		CONTROL_GET_CROSSOVER	= (uint8_t)0x22,
+		CONTROL_GET_DC_GAIN		= (uint8_t)0x23,
+
+		//load related reads
+		LOAD_GET_DC_RESISTANCE	= (uint8_t)0x31,
+		LOAD_GET_NATURAL_FREQ	= (uint8_t)0x32,
+
+		//ADC/sampling related functionality
+		SAMPLER_READ_CURRENT	= (uint8_t)0x40,
+		SAMPLER_READ_FINE_RAW	= (uint8_t)0x41,
+		SAMPLER_READ_COARSE_RAW	= (uint8_t)0x42,
+		SAMPLER_GET_FINE_LIMITS	= (uint8_t)0x43,
+
+		//sampler status and current output value
+		SETPOINT_GET_STATUS		= (uint8_t)0x61,
+		SETPOINT_GET_WAVE_TYPE	= (uint8_t)0x62,
+		SETPOINT_GET_VALUE		= (uint8_t)0x63,
+
 	};
 }
 

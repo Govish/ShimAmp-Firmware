@@ -9,6 +9,38 @@
  */
 
 #include "app_control_biquad.h"
+#include "app_utils.h" //for pi
+
+//================== FILTER CONSTANT CREATION METHODS ================
+
+// ported from https://arachnoid.com/BiQuadDesigner/javascript/BiQuadFilter.js
+//I'm not sure whether this implementation does frequency pre-warping, but the error should be small
+//for corner frequencies far from nyquist
+Biquad::Biquad_Params Biquad::make_lowpass(float corner_freq, float Q, float sampling_freq) {
+	//return zero constants if our corner frequency is past nyquist
+	//NOTE: IN A HEAVILY OVERDAMPED FILTER, THE FAST POLE CAN POTENTIALLY BE PAST NYQUIST
+	//I HAVEN'T SANITY CHECKED THAT EDGE CASE, TODO NOTING THAT HERE
+	if(corner_freq * 2 > sampling_freq) return {0};
+
+	float omega = 2.0f * (float)PI * corner_freq / sampling_freq;
+	float alpha = std::sin(omega) / (2.0f * Q);
+	float cos_omega = std::cos(omega);
+	float a_0 = 1 + alpha;
+
+	//normalize with respect to a_0
+	Biquad_Params lp_params = {
+			.a_1 = -2.0f * cos_omega / a_0,
+			.a_2 = (1 - alpha) / a_0,
+			.b_0 = (1 - cos_omega) / (2.0f * a_0),
+			.b_1 = (1 - cos_omega) / a_0,
+			.b_2 = (1 - cos_omega) / (2.0f * a_0),
+	};
+
+	//return the created parameters
+	return lp_params;
+}
+
+//========================= MEMBER FUNCTIONS ======================
 
 Biquad::Biquad() {
 	//initialize filter params to zero

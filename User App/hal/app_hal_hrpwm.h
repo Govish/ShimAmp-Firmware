@@ -53,7 +53,6 @@ public:
 
 	//delete copy constructor, and assignment operator
 	//such as to prevent weird hardware conflicts
-	//TODO: can't delete destructor since I need it when accessing HRPWM_Hardware_Channels?
 	HRPWM(HRPWM const&) = delete;
 	void operator=(HRPWM const&) = delete;
 

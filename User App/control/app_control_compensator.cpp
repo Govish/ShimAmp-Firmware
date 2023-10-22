@@ -19,6 +19,7 @@ Compensator::Biquad_Params Compensator::make_gains(	float desired_dc_gain, float
 {
 	//do some sanity checking
 	if(desired_dc_gain <= 1) return {0};
+	if(f_crossover * 5 > fs) return {0}; //hard to guarantee controller efficacy when crossover is this close to fs
 
 	//in order to compute what we'd like our controller gain to be
 	float controller_gain = desired_dc_gain;
@@ -66,6 +67,7 @@ Compensator::Biquad_Params Compensator::make_gains(	float desired_dc_gain, float
 {
 	//do some sanity checking
 	if(desired_dc_gain <= 1) return {0};
+	if(f_crossover * 5 > fs) return {0}; //hard to guarantee controller efficacy when crossover is this close to fs
 
 	//in order to compute what we'd like our controller gain to be
 	float controller_gain = desired_dc_gain;

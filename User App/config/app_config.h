@@ -25,10 +25,12 @@ public:
 	static const size_t CONFIG_NAME_SIZE = 256;
 	static const size_t CONFIG_DESC_SIZE = 1024;
 	static const size_t POWER_STAGE_COUNT = 1;
+	static constexpr float AMP_MAX_CHANNEL_CURRENT = 10.0f;
 
 	//configuration for each power stage/regulation channel
 	struct Power_Stage_Channel_Config {
 		uint8_t CHANNEL_NO; //channel corresponding to the particular power stage instance
+		static constexpr float CHANNEL_MAX_CURRENT = AMP_MAX_CHANNEL_CURRENT; //maximum current we'll allow the channel to drive
 
 		//current sensing hardware configuration and ADC trim values
 		float SHUNT_RESISTANCE; //current shunt resistance value in ohms
@@ -44,6 +46,7 @@ public:
 		//specific controller parameters
 		float K_DC; //controller DC gain, linear scale
 		float F_CROSSOVER; //controller crossover frequency, Hz
+		float SETPOINT_RECON_BANDWIDTH; //setpoint controller upsampling reconstruction filter bandwidth
 
 		//load parameters
 		float LOAD_RESISTANCE; //DC resistance of load, ohms
@@ -58,6 +61,7 @@ public:
 		//global power stage/regulator configuration parameters
 		float DESIRED_SWITCHING_FREQUENCY; //power stage switching frequency
 		float DESIRED_SAMPLING_FREQUENCY; //sampling/controller frequency
+		float DESIRED_SETPOINT_TICK_FREQUENCY; //arbitrary waveforms were sampled at this frequency
 
 		//channel-specific power stage configuration
 		static const size_t NUM_POWER_STAGES = POWER_STAGE_COUNT;

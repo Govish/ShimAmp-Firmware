@@ -48,11 +48,6 @@ bool HRPWM::GET_ALL_ENABLED() {
 	return (hrtim_handle->Instance->sMasterRegs.MCR & TIMER_ENABLE_MASK) > 0;
 }
 
-/*
- * TODO (maybe) write a version of this function that:
- * 	- will disable and re-enable the PWM timers as necessary
- * 	- recomputes and updates all the duty cycle registers
- */
 bool HRPWM::SET_FSW(float fsw_hz) {
 	if(GET_ALL_ENABLED()) return false; //don't adjust the period if the timers are enabled
 
@@ -230,20 +225,12 @@ uint16_t HRPWM::get_duty_raw() {
 
 //========================= PRIVATE METHODS =======================
 
-/*
- * TODO: halt DMA and interrupts as necessary
- */
 void HRPWM::DISABLE_ALL() {
 	//disable master timer and all individual timers in one write
 	//i know this compound assignment throws warnings, but should almost certainly be fine
 	hrtim_handle->Instance->sMasterRegs.MCR &= ~(TIMER_ENABLE_MASK);
 }
 
-/*
- * TODO: re-enable interrupts and DMA as necessary
- * maybe force a master timer reset event to resynchronize all the other timers?
- * 		- can guarantee resynch after one clock cycle so might not be necessary
- */
 void HRPWM::ENABLE_ALL() {
 	//enable master timer and all individual timers in one write
 	//i know this compound assignment throws warnings, but should almost certainly be fine

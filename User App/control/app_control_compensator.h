@@ -4,9 +4,6 @@
  *  Created on: Oct 18, 2023
  *      Author: Ishaan
  *
- *  The compensator is VERY similar to a biquad filter, but has some subtle differences in like every single aspect of its function
- *  TODO: have both of these inherit from a general `DiscreteTF` abstract class
- *
  *  The compensator class will have some computational optimizations that stem from just a single pole/zero pair
  *  It will also have a utility function that tweaks the effective instantaneous gain of the compensator due to variations
  *  DC gains in the forward/feedback paths
@@ -42,7 +39,7 @@ public:
 	//since a compensator will only have a single pole/zero
 	//can reduce the number of mults/shifts for better computational efficiency
 	//can also allow for gain post-scaling (to compensate for DC gain variations
-	float compute(float input) override;
+	float __attribute__((optimize("O3"))) compute(float input) override;
 
 	//use this function to correct for slight deviations between expected and actual DC gains of the system (e.g. input voltage changing, coil DC resistance)
 	//the first parameter indicates the desired dc loop gain of our entire forward path
