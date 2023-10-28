@@ -31,39 +31,18 @@ void Power_Stage_Request_Handlers::attach_power_stage_systems(std::span<Power_St
 //======================================================== THE ACTUAL REQUEST HANDLERS ===================================================
 
 /*
- * Will either have 1 or 2 bytes
- * If 1 byte:
- * 	get the `enable_status` of channel 0
- * If 2 bytes:
- * 	get the `enable_status` of channel `rx_packet[1]`
+ * get the `enable_status` of channel `rx_packet[1]`
  */
 std::pair<Parser::MessageType_t, size_t> Power_Stage_Request_Handlers::stage_get_enable_status(	const std::span<uint8_t, std::dynamic_extent> rx_payload,
 																								std::span<uint8_t, std::dynamic_extent> tx_payload)
 {
-	//sanity check that we have space in our transmit payload buffer
-	//return a firmware error code if that doesn't match
-	if(tx_payload.size() < 3) {
-		//can't guarantee we have space in the TX buffer, so not gonna try dropping an actual NACK message in there
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 0);
-	}
+	//sanity check the received request
+	uint8_t tx_len;
+	if(!RQ_Mapping::VALIDATE_REQUEST(tx_payload, rx_payload, 3, 2, RQ_Mapping::STAGE_ENABLE_STATUS, tx_len))
+		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, tx_len);
 
-	//ensure that our payload is the correct size, first
-	//if not, return a payload size error message
-	if(rx_payload.size() != 1 && rx_payload.size() != 2) {
-		tx_payload[0] = Parser::NACK_ERROR_INVALID_MSG_SIZE;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//sanity check that we were redirected from the correct request code
-	//return a firmware error code if that doesn't match
-	if(rx_payload[0] != RQ_Mapping::STAGE_ENABLE_STATUS) {
-		tx_payload[0] = Parser::NACK_ERROR_INTERNAL_FW;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//grab the particular channel we want to disable
-	size_t channel = 0;
-	if(rx_payload.size() == 2) channel = rx_payload[1];
+	//grab the channel we wann query
+	size_t channel = rx_payload[1];
 
 	//check if we can index into the appropriate channel number
 	if(channel >= stages.size()) {
@@ -82,39 +61,18 @@ std::pair<Parser::MessageType_t, size_t> Power_Stage_Request_Handlers::stage_get
 }
 
 /*
- * Will either have 1 or 2 bytes
- * If 1 byte:
- * 	get the drive of channel 0
- * If 2 bytes:
- * 	get the drive of channel `rx_packet[1]`
+ * get the drive of channel `rx_packet[1]`
  */
 std::pair<Parser::MessageType_t, size_t> Power_Stage_Request_Handlers::stage_get_drive(	const std::span<uint8_t, std::dynamic_extent> rx_payload,
 																						std::span<uint8_t, std::dynamic_extent> tx_payload)
 {
-	//sanity check that we have space in our transmit payload buffer
-	//return a firmware error code if that doesn't match
-	if(tx_payload.size() < 6) {
-		//can't guarantee we have space in the TX buffer, so not gonna try dropping an actual NACK message in there
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 0);
-	}
+	//sanity check the received request
+	uint8_t tx_len;
+	if(!RQ_Mapping::VALIDATE_REQUEST(tx_payload, rx_payload, 6, 2, RQ_Mapping::STAGE_GET_DRIVE, tx_len))
+		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, tx_len);
 
-	//ensure that our payload is the correct size, first
-	//if not, return a payload size error message
-	if(rx_payload.size() != 1 && rx_payload.size() != 2) {
-		tx_payload[0] = Parser::NACK_ERROR_INVALID_MSG_SIZE;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//sanity check that we were redirected from the correct request code
-	//return a firmware error code if that doesn't match
-	if(rx_payload[0] != RQ_Mapping::STAGE_GET_DRIVE) {
-		tx_payload[0] = Parser::NACK_ERROR_INTERNAL_FW;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//grab the particular channel we want to inspect
-	size_t channel = 0;
-	if(rx_payload.size() == 2) channel = rx_payload[1];
+	//grab the channel we wann query
+	size_t channel = rx_payload[1];
 
 	//check if we can index into the appropriate channel number
 	if(channel >= stages.size()) {
@@ -136,39 +94,18 @@ std::pair<Parser::MessageType_t, size_t> Power_Stage_Request_Handlers::stage_get
 }
 
 /*
- * Will either have 1 or 2 bytes
- * If 1 byte:
- * 	get the drive of channel 0
- * If 2 bytes:
- * 	get the drive of channel `rx_packet[1]`
+ * get the duty cycles of channel `rx_packet[1]`
  */
 std::pair<Parser::MessageType_t, size_t> Power_Stage_Request_Handlers::stage_get_duties(const std::span<uint8_t, std::dynamic_extent> rx_payload,
 																						std::span<uint8_t, std::dynamic_extent> tx_payload)
 {
-	//sanity check that we have space in our transmit payload buffer
-	//return a firmware error code if that doesn't match
-	if(tx_payload.size() < 10) {
-		//can't guarantee we have space in the TX buffer, so not gonna try dropping an actual NACK message in there
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 0);
-	}
+	//sanity check the received request
+	uint8_t tx_len;
+	if(!RQ_Mapping::VALIDATE_REQUEST(tx_payload, rx_payload, 10, 2, RQ_Mapping::STAGE_GET_DUTIES, tx_len))
+		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, tx_len);
 
-	//ensure that our payload is the correct size, first
-	//if not, return a payload size error message
-	if(rx_payload.size() != 1 && rx_payload.size() != 2) {
-		tx_payload[0] = Parser::NACK_ERROR_INVALID_MSG_SIZE;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//sanity check that we were redirected from the correct request code
-	//return a firmware error code if that doesn't match
-	if(rx_payload[0] != RQ_Mapping::STAGE_GET_DUTIES) {
-		tx_payload[0] = Parser::NACK_ERROR_INTERNAL_FW;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//grab the particular channel we want to inspect
-	size_t channel = 0;
-	if(rx_payload.size() == 2) channel = rx_payload[1];
+	//grab the channel we wann query
+	size_t channel = rx_payload[1];
 
 	//check if we can index into the appropriate channel number
 	if(channel >= stages.size()) {
@@ -197,26 +134,10 @@ std::pair<Parser::MessageType_t, size_t> Power_Stage_Request_Handlers::stage_get
 std::pair<Parser::MessageType_t, size_t> Power_Stage_Request_Handlers::stage_get_fsw(	const std::span<uint8_t, std::dynamic_extent> rx_payload,
 																						std::span<uint8_t, std::dynamic_extent> tx_payload)
 {
-	//sanity check that we have space in our transmit payload buffer
-	//return a firmware error code if that doesn't match
-	if(tx_payload.size() < 5) {
-		//can't guarantee we have space in the TX buffer, so not gonna try dropping an actual NACK message in there
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 0);
-	}
-
-	//ensure that our payload is the correct size, first
-	//if not, return a payload size error message
-	if(rx_payload.size() != 1) {
-		tx_payload[0] = Parser::NACK_ERROR_INVALID_MSG_SIZE;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//sanity check that we were redirected from the correct request code
-	//return a firmware error code if that doesn't match
-	if(rx_payload[0] != RQ_Mapping::STAGE_GET_FSW) {
-		tx_payload[0] = Parser::NACK_ERROR_INTERNAL_FW;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
+	//sanity check the received request
+	uint8_t tx_len;
+	if(!RQ_Mapping::VALIDATE_REQUEST(tx_payload, rx_payload, 5, 1, RQ_Mapping::STAGE_GET_FSW, tx_len))
+		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, tx_len);
 
 	//grab the switching frequency of all power stages
 	float fsw_hz = Power_Stage_Subsystem::get_switching_frequency();

@@ -21,11 +21,11 @@ std::array<Power_Stage_Subsystem*, Configuration::POWER_STAGE_COUNT> Power_Stage
 Power_Stage_Subsystem::Channel_Hardware_Details Power_Stage_Subsystem::POWER_STAGE_CHANNEL_0 = {
 		.pos_channel = HRPWM::CHANNEL_B2_PA11,
 		.neg_channel = HRPWM::CHANNEL_B1_PA10,
-		.en_pin_name = PinMap::status_led, /*TODO*/
+		.en_pin_name = PinMap::stage_enable,
 		.en_active_high = true,
 
 		.ifine = Triggered_ADC::CHANNEL_3,
-		.icoarse = Triggered_ADC::CHANNEL_3, /*TODO*/
+		.icoarse = Triggered_ADC::CHANNEL_4,
 };
 
 //================================= PUBLIC MEMBER FUNCTIONS =============================
@@ -239,4 +239,8 @@ Sampler_Wrapper& Power_Stage_Subsystem::get_sampler_instance() {
 
 Regulator_Wrapper& Power_Stage_Subsystem::get_regulator_instance() {
 	return regulator_wrapper; //access controlled version of the regulator
+}
+
+Setpoint_Wrapper& Power_Stage_Subsystem::get_setpoint_instance() {
+	return setpoint_wrapper; //access controlled version of the setpoint controller
 }

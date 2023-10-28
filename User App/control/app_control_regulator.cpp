@@ -30,7 +30,7 @@ void Regulator::init() {
 					params.POWER_STAGE_CONFIGS[index].LOAD_CHARACTERISTIC_FREQ);
 
 	//attach regulator callback in using a lambda bind
-	sampler.attach_sample_cb([this](){regulate();});
+	sampler.attach_sample_cb(Context_Callback_Function<>(this, regulate_forwarder));
 }
 
 //################ PARAMETER RECOMPUTATION ################
@@ -127,6 +127,27 @@ bool Regulator::update_load_natural_freq(float new_load_natural_freq) {
 							new_load_natural_freq);
 }
 
+//##### GETTER METHODS #####
+//as of now, just pass up the values from the configuration
+//TODO: maybe properly compute these given DC gains and biquad parameters
+float Regulator::get_gain() {
+	return params.POWER_STAGE_CONFIGS[index].K_DC;
+}
+
+float Regulator::get_crossover_freq() {
+	return params.POWER_STAGE_CONFIGS[index].F_CROSSOVER;
+}
+
+float Regulator::get_load_resistance() {
+	return params.POWER_STAGE_CONFIGS[index].LOAD_RESISTANCE;
+}
+
+float Regulator::get_load_natural_freq() {
+	return params.POWER_STAGE_CONFIGS[index].LOAD_CHARACTERISTIC_FREQ;
+}
+
+
+
 //###### GAIN TRIMMING ######
 
 void Regulator::trim_gain() {
@@ -165,12 +186,16 @@ void Regulator::disable() {
 }
 
 //====================================== PRIVATE METHODS ====================================
-void Regulator::regulate() {
-	//sanity check that regulator is enabled, shouldn't ever need to depend on this
-	if(!enabled) return;
+void Regulator::regulate_forwarder(void* context) {
+	reinterpret_cast<Regulator*>(context)->regulate();
+}
 
+//avoid enable sanity checking to reduce overhead
+void Regulator::regulate() {
 	//grab the next band-limited setpoint target
 	float sp = setpoint.next();
+
+	//TODO: compute feed-forward
 
 	//grab the input and compute the error given the setpoint
 	float current = sampler.get_current_reading();
@@ -178,8 +203,6 @@ void Regulator::regulate() {
 
 	//run the error through the compensator
 	float output = comp.compute(error);
-
-	//TODO: add dither maybe
 
 	//throw the output to the power stage (stage will constrain this output)
 	stage.set_drive_raw(output);

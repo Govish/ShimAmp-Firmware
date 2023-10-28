@@ -29,7 +29,7 @@ static const Configuration::Power_Stage_Channel_Config DEFAULT_CONFIG_PS_CHANNEL
 		.SETPOINT_RECON_BANDWIDTH = 10000.0, //setpoint reconstruction filter should start rolling off here
 
 		//parameters for the shim coil load
-		.LOAD_RESISTANCE = 100e-3, //default to 100mR load
+		.LOAD_RESISTANCE = 200e-3, //default to 100mR load
 		.LOAD_CHARACTERISTIC_FREQ = 50000, //mostly resistive load
 };
 
@@ -43,7 +43,7 @@ const Configuration::Configuration_Params Configuration::DEFAULT_CONFIG = {
 		},
 
 		//global power stage parameters
-		.DESIRED_SWITCHING_FREQUENCY = 1.5e6, //start with a 1.5MHz switching frequency
+		.DESIRED_SWITCHING_FREQUENCY = 1.42857142e6, //start with a 1.42857MHz switching frequency (10MHz/7)
 		.DESIRED_SAMPLING_FREQUENCY = 250e3, //and a 250kHz current sampling frequency
 		.DESIRED_SETPOINT_TICK_FREQUENCY = 40e3, //arbitrary waveforms were sampled at this rate
 

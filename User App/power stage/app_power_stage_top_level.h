@@ -96,6 +96,10 @@ public:
 	//allows updates to control parameters and whether the regulator is running
 	Regulator_Wrapper& get_regulator_instance();
 
+	//return a reference to the setpoint contorller
+	//allows updates to setpoint/setpoint control while the regulator is running
+	Setpoint_Wrapper& get_setpoint_instance();
+
 private:
 	//=============================== PRIVATE METHOD TO UPDATE INSTANCES WHEN OPERATING FREQUENCIES UPDATED =====================================
 	bool recompute_rates();

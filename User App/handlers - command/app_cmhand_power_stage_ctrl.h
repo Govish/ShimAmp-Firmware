@@ -54,14 +54,14 @@ private:
 	static std::span<Power_Stage_Subsystem*, std::dynamic_extent> stages; //have a container that holds a handful of power stages
 
 	static constexpr std::array<Parser::command_mapping_t, 8> COMMAND_HANDLERS = {
-			make_pair(CM_Mapping::STAGE_DISABLE, disable_stage),
-			make_pair(CM_Mapping::STAGE_ENABLE_MANUAL, enable_stage_manual),
-			make_pair(CM_Mapping::STAGE_ENABLE_REGULATOR, enable_stage_regulator),
-			make_pair(CM_Mapping::STAGE_ENABLE_AUTOTUNING, enable_stage_autotune),
-			make_pair(CM_Mapping::STAGE_MANUAL_DRIVE_OFF, stage_manual_off),
-			make_pair(CM_Mapping::STAGE_MANUAL_SET_DRIVE, stage_manual_drive),
-			make_pair(CM_Mapping::STAGE_MANUAL_SET_DUTIES, stage_manual_duties),
-			make_pair(CM_Mapping::STAGE_SET_FSW, stage_set_fsw),
+			std::make_pair(CM_Mapping::STAGE_DISABLE, disable_stage),
+			std::make_pair(CM_Mapping::STAGE_ENABLE_MANUAL, enable_stage_manual),
+			std::make_pair(CM_Mapping::STAGE_ENABLE_REGULATOR, enable_stage_regulator),
+			std::make_pair(CM_Mapping::STAGE_ENABLE_AUTOTUNING, enable_stage_autotune),
+			std::make_pair(CM_Mapping::STAGE_MANUAL_DRIVE_OFF, stage_manual_off),
+			std::make_pair(CM_Mapping::STAGE_MANUAL_SET_DRIVE, stage_manual_drive),
+			std::make_pair(CM_Mapping::STAGE_MANUAL_SET_DUTIES, stage_manual_duties),
+			std::make_pair(CM_Mapping::STAGE_SET_FSW, stage_set_fsw),
 	};
 };
 

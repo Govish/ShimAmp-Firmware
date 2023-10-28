@@ -94,6 +94,8 @@ int main(void)
   MX_LPUART1_UART_Init();
   MX_HRTIM1_Init();
   MX_ADC3_Init();
+  MX_ADC4_Init();
+  MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
   //call the user app initialization routines
   app_init();

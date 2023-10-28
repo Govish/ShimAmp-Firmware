@@ -36,6 +36,8 @@ public:
 
 	static const DIO_Hardware_Channel status_led;
 	static const DIO_Hardware_Channel user_button;
+	static const DIO_Hardware_Channel stage_enable;
+	static const DIO_Hardware_Channel stage_enable_2;
 
 	//================================== DELETE CONSTRUCTORS TO PREVENT INSTANTIATION ========================================
 	PinMap() = delete;

@@ -8,14 +8,6 @@
 #ifndef BOARD_HAL_INC_APP_HAL_INT_UTILS_H_
 #define BOARD_HAL_INC_APP_HAL_INT_UTILS_H_
 
-#include <functional> //for callback function typedef
-
-inline void empty_cb() {} //defining some kinda empty function with which to initialize callback functions (inlining to avoid compilation errors)
-
-//define a type for callback functions that we can call when interrupts are handled
-//doing this for easier readability
-typedef std::function<void(void)> callback_function_t;
-
 //enum numeric mappings correspond to to NVIC values
 typedef enum Priorities {
 	REALTIME = 0,
@@ -29,11 +21,10 @@ typedef enum Priorities {
 
 //====================== DECLARING INTERRUPT HANDLERS HERE =========================
 extern "C" {
-	//example provided below:
-	//void TIM1_BRK_TIM9_IRQHandler(void); //general purpose timer channel 0
-
-	//ADC3 interrupt
+	//ADC interrupts
 	void ADC3_IRQHandler(void); //ADC channel 3 conversion complete interrupt
+	void ADC4_IRQHandler(void); //ADC channel 4 conversion complete interrupt
+	void ADC5_IRQHandler(void); //ADC channel 5 conversion complete interrupt
 }
 
 #endif /* BOARD_HAL_INC_APP_HAL_INT_UTILS_H_ */

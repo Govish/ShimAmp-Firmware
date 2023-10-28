@@ -32,38 +32,18 @@ void Power_Stage_Command_Handlers::attach_power_stage_systems(std::span<Power_St
 //======================================================== THE ACTUAL COMMAND HANDLERS ===================================================
 
 /*
- * Will either have 1 or 2 bytes
- * If 1 byte:
- * 	disable channel 0
- * If 2 bytes:
- * 	disable channel `rx_packet[1]`
+ * disable the channel provided in rx_payload[1]
  */
 std::pair<Parser::MessageType_t, size_t> Power_Stage_Command_Handlers::disable_stage(	const std::span<uint8_t, std::dynamic_extent> rx_payload,
 																						std::span<uint8_t, std::dynamic_extent> tx_payload)
 {
-	//sanity check that we have space in our transmit payload buffer
-	//return a firmware error code if that doesn't match
-	if(tx_payload.size() < 1) {
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 0); //don't have anywhere to put the TX message
-	}
-
-	//ensure that our payload is the correct size, first
-	//if not, return a payload size error message
-	if(rx_payload.size() != 1 && rx_payload.size() != 2) {
-		tx_payload[0] = Parser::NACK_ERROR_INVALID_MSG_SIZE;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//sanity check that we were redirected from the correct command code
-	//return a firmware error code if that doesn't match
-	if(rx_payload[0] != CM_Mapping::STAGE_DISABLE) {
-		tx_payload[0] = Parser::NACK_ERROR_INTERNAL_FW;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
+	//sanity check the received command
+	uint8_t tx_len;
+	if(!CM_Mapping::VALIDATE_COMMAND(tx_payload, rx_payload, 1, 2, CM_Mapping::STAGE_DISABLE, tx_len))
+		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, tx_len);
 
 	//grab the particular channel we want to disable
-	size_t channel = 0;
-	if(rx_payload.size() == 2) channel = rx_payload[1];
+	size_t channel = rx_payload[1];
 
 	//check if we can index into the appropriate channel number
 	if(channel >= stages.size()) {
@@ -84,40 +64,20 @@ std::pair<Parser::MessageType_t, size_t> Power_Stage_Command_Handlers::disable_s
 }
 
 /*
- * Will either have 1 or 2 bytes
- * If 1 byte:
- * 	enable channel 0 in current regulator operation
- * If 2 bytes:
- * 	enable channel `rx_packet[1]` in current regulator operation
+ * enable regulation on channel `rx_payload[1]`
  *
- * 	Will start the channel regulating the output to zero current
+ * Will start the channel regulating the output to zero current
  */
 std::pair<Parser::MessageType_t, size_t> Power_Stage_Command_Handlers::enable_stage_regulator(	const std::span<uint8_t, std::dynamic_extent> rx_payload,
 																								std::span<uint8_t, std::dynamic_extent> tx_payload)
 {
-	//sanity check that we have space in our transmit payload buffer
-	//return a firmware error code if that doesn't match
-	if(tx_payload.size() < 1) {
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 0); //don't have anywhere to put the TX message
-	}
-
-	//ensure that our payload is the correct size, first
-	//if not, return a payload size error message
-	if(rx_payload.size() != 1 && rx_payload.size() != 2) {
-		tx_payload[0] = Parser::NACK_ERROR_INVALID_MSG_SIZE;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//sanity check that we were redirected from the correct command code
-	//return a firmware error code if that doesn't match
-	if(rx_payload[0] != CM_Mapping::STAGE_ENABLE_REGULATOR) {
-		tx_payload[0] = Parser::NACK_ERROR_INTERNAL_FW;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
+	//sanity check the received command
+	uint8_t tx_len;
+	if(!CM_Mapping::VALIDATE_COMMAND(tx_payload, rx_payload, 1, 2, CM_Mapping::STAGE_ENABLE_REGULATOR, tx_len))
+		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, tx_len);
 
 	//grab the particular channel we want to disable
-	size_t channel = 0;
-	if(rx_payload.size() == 2) channel = rx_payload[1];
+	size_t channel = rx_payload[1];
 
 	//check if we can index into the appropriate channel number
 	if(channel >= stages.size()) {
@@ -138,47 +98,22 @@ std::pair<Parser::MessageType_t, size_t> Power_Stage_Command_Handlers::enable_st
 }
 
 /*
- * Will either have (1 + confirmation_message_size) or (2 + confirmation_message_size) bytes
- * If 1 + confirmation_message_size bytes:
- * 	enable channel 0 in manual control operation
- * If 2 + confirmation_message_size bytes:
- * 	enable channel `rx_packet[1]` in manual control operation
- *
+ * Will have (2 + confirmation_message_size) bytes
+ * enable manual control on channel `rx_payload[1]` and confirm manual control with confirmation message
  *
  * 	Will start the channel with both power stages set to zero PWM value
  */
 std::pair<Parser::MessageType_t, size_t> Power_Stage_Command_Handlers::enable_stage_manual(	const std::span<uint8_t, std::dynamic_extent> rx_payload,
 																							std::span<uint8_t, std::dynamic_extent> tx_payload)
 {
-	//sanity check that we have space in our transmit payload buffer
-	//return a firmware error code if that doesn't match
-	if(tx_payload.size() < 1) {
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 0); //don't have anywhere to put the TX message
-	}
-
-	//ensure that our payload is the correct size, first
-	//if not, return a payload size error message
-	if(rx_payload.size() != (1 + man_confirm_message.size()) && rx_payload.size() != (2 + man_confirm_message.size())) {
-		tx_payload[0] = Parser::NACK_ERROR_INVALID_MSG_SIZE;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//sanity check that we were redirected from the correct command code
-	//return a firmware error code if that doesn't match
-	if(rx_payload[0] != CM_Mapping::STAGE_ENABLE_MANUAL) {
-		tx_payload[0] = Parser::NACK_ERROR_INTERNAL_FW;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
+	//sanity check the received command
+	uint8_t tx_len;
+	if(!CM_Mapping::VALIDATE_COMMAND(tx_payload, rx_payload, 1, 2 + man_confirm_message.size(), CM_Mapping::STAGE_ENABLE_MANUAL, tx_len))
+		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, tx_len);
 
 	//grab the particular channel we want to disable and the confirmation message bytes
-	std::span<uint8_t, std::dynamic_extent> confirm_bytes;
-	size_t channel = 0;
-	if(rx_payload.size() == (2 + man_confirm_message.size())) {
-		channel = rx_payload[1];
-		confirm_bytes = rx_payload.subspan(2); //grab the rest of the bytes
-	}
-	else
-		confirm_bytes = rx_payload.subspan(1); //channel = 0, grab the rest of the bytes
+	size_t channel = rx_payload[1];
+	std::span<uint8_t, std::dynamic_extent> confirm_bytes = rx_payload.subspan(2); //grab the rest of the bytes
 
 	//check if we can index into the appropriate channel number
 	if(channel >= stages.size()) {
@@ -206,46 +141,21 @@ std::pair<Parser::MessageType_t, size_t> Power_Stage_Command_Handlers::enable_st
 }
 
 /*
- * Will either have 1 or 2 bytes
- * If 1 byte:
- * 	autotune controller based on shim coil attached to channel 0
- * If 2 bytes:
- * 	autotune controller based on shim coil attached to channel `rx_packet[1]`
+ * Autotune controller based on shim coil attached to channel `rx_packet[1]` and confirm with user
  *
- * 	Will immediately start autotuning if operation is successful
+ * Will immediately start autotuning if operation is successful
  */
 std::pair<Parser::MessageType_t, size_t> Power_Stage_Command_Handlers::enable_stage_autotune(	const std::span<uint8_t, std::dynamic_extent> rx_payload,
 																								std::span<uint8_t, std::dynamic_extent> tx_payload)
 {
-	//sanity check that we have space in our transmit payload buffer
-	//return a firmware error code if that doesn't match
-	if(tx_payload.size() < 1) {
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 0); //don't have anywhere to put the TX message
-	}
-
-	//ensure that our payload is the correct size, first
-	//if not, return a payload size error message
-	if(rx_payload.size() != (1 + tune_confirm_message.size()) && rx_payload.size() != (2 + tune_confirm_message.size())) {
-		tx_payload[0] = Parser::NACK_ERROR_INVALID_MSG_SIZE;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//sanity check that we were redirected from the correct command code
-	//return a firmware error code if that doesn't match
-	if(rx_payload[0] != CM_Mapping::STAGE_ENABLE_AUTOTUNING) {
-		tx_payload[0] = Parser::NACK_ERROR_INTERNAL_FW;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
+	//sanity check the received command
+	uint8_t tx_len;
+	if(!CM_Mapping::VALIDATE_COMMAND(tx_payload, rx_payload, 1, 2 + tune_confirm_message.size(), CM_Mapping::STAGE_ENABLE_AUTOTUNING, tx_len))
+		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, tx_len);
 
 	//grab the particular channel we want to disable and the confirmation message bytes
-	std::span<uint8_t, std::dynamic_extent> confirm_bytes;
-	size_t channel = 0;
-	if(rx_payload.size() == (2 + tune_confirm_message.size())) {
-		channel = rx_payload[1];
-		confirm_bytes = rx_payload.subspan(2);
-	}
-	else
-		confirm_bytes = rx_payload.subspan(1);
+	size_t channel = rx_payload[1];
+	std::span<uint8_t, std::dynamic_extent> confirm_bytes = rx_payload.subspan(2);
 
 	//check if we can index into the appropriate channel number
 	if(channel >= stages.size()) {
@@ -276,40 +186,20 @@ std::pair<Parser::MessageType_t, size_t> Power_Stage_Command_Handlers::enable_st
 //========================= MANUAL CONTROL FUNCTIONS =========================
 
 /*
- * Will either have 1 or 2 bytes
- * If 1 byte:
- * 	turn off power stage channel 0
- * If 2 bytes:
- * 	turn off power stage channel `rx_packet[1]`
+ * Turn off power stage channel `rx_packet[1]`
  *
  * 	Will immediately start autotuning if operation is successful
  */
 std::pair<Parser::MessageType_t, size_t> Power_Stage_Command_Handlers::stage_manual_off(	const std::span<uint8_t, std::dynamic_extent> rx_payload,
 																							std::span<uint8_t, std::dynamic_extent> tx_payload)
 {
-	//sanity check that we have space in our transmit payload buffer
-	//return a firmware error code if that doesn't match
-	if(tx_payload.size() < 1) {
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 0); //don't have anywhere to put the TX message
-	}
-
-	//ensure that our payload is the correct size, first
-	//if not, return a payload size error message
-	if(rx_payload.size() != 1 && rx_payload.size() != 2) {
-		tx_payload[0] = Parser::NACK_ERROR_INVALID_MSG_SIZE;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//sanity check that we were redirected from the correct command code
-	//return a firmware error code if that doesn't match
-	if(rx_payload[0] != CM_Mapping::STAGE_MANUAL_DRIVE_OFF) {
-		tx_payload[0] = Parser::NACK_ERROR_INTERNAL_FW;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
+	//sanity check the received command
+	uint8_t tx_len;
+	if(!CM_Mapping::VALIDATE_COMMAND(tx_payload, rx_payload, 1, 2, CM_Mapping::STAGE_MANUAL_DRIVE_OFF, tx_len))
+		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, tx_len);
 
 	//grab the particular channel we want to disable
-	size_t channel = 0;
-	if(rx_payload.size() == 2) channel = rx_payload[1];
+	size_t channel = rx_payload[1];
 
 	//check if we can index into the appropriate channel number
 	if(channel >= stages.size()) {
@@ -339,47 +229,21 @@ std::pair<Parser::MessageType_t, size_t> Power_Stage_Command_Handlers::stage_man
 }
 
 /*
- * Will either have 5 or 6 bytes
- * last 4 bytes will always be the float value for which to drive the stage
- * If 5 byte:
- * 	turn off power stage channel 0
- * If 6 bytes:
- * 	turn off power stage channel `rx_packet[1]`
+ *  drive power stage channel `rx_packet[1]` with value rx_packet[2:5]
  *
  * 	Will immediately start autotuning if operation is successful
  */
 std::pair<Parser::MessageType_t, size_t> Power_Stage_Command_Handlers::stage_manual_drive(	const std::span<uint8_t, std::dynamic_extent> rx_payload,
 																							std::span<uint8_t, std::dynamic_extent> tx_payload)
 {
-	//sanity check that we have space in our transmit payload buffer
-	//return a firmware error code if that doesn't match
-	if(tx_payload.size() < 1) {
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 0); //don't have anywhere to put the TX message
-	}
+	//sanity check the received command
+	uint8_t tx_len;
+	if(!CM_Mapping::VALIDATE_COMMAND(tx_payload, rx_payload, 1, 6, CM_Mapping::STAGE_MANUAL_SET_DRIVE, tx_len))
+		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, tx_len);
 
-	//ensure that our payload is the correct size, first
-	//if not, return a payload size error message
-	if(rx_payload.size() != 5 && rx_payload.size() != 6) {
-		tx_payload[0] = Parser::NACK_ERROR_INVALID_MSG_SIZE;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//sanity check that we were redirected from the correct command code
-	//return a firmware error code if that doesn't match
-	if(rx_payload[0] != CM_Mapping::STAGE_MANUAL_SET_DRIVE) {
-		tx_payload[0] = Parser::NACK_ERROR_INTERNAL_FW;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//grab the particular channel we want to disable
-	std::span<uint8_t, std::dynamic_extent> drive_bytes; //have a place to dump the bytes for our drive value
-	size_t channel = 0;
-	if(rx_payload.size() == 6) {
-		channel = rx_payload[1];
-		drive_bytes = rx_payload.subspan(2, 4); //grab bytes starting at [2]
-	}
-	else
-		drive_bytes = rx_payload.subspan(1, 4); //grab bytes starting at [1] (channel is 0)
+	//grab the particular channel we want to disable and the commanded stage drive
+	size_t channel = rx_payload[1];
+	std::span<uint8_t, std::dynamic_extent> drive_bytes = rx_payload.subspan(2, 4); //grab bytes starting at [2]
 
 	//check if we can index into the appropriate channel number
 	if(channel >= stages.size()) {
@@ -413,54 +277,20 @@ std::pair<Parser::MessageType_t, size_t> Power_Stage_Command_Handlers::stage_man
 }
 
 /*
- * Will either have 9 or 10 bytes
- * last 8 bytes will always be the float value for which to drive the half-bridges
- * float starting at index [1 or 2] --> positive value of half bridge drive
- * float starting at index [5 or 6] --> positive value of half bridge drive
- *
- * If 9 byte:
- * 	turn off power stage channel 0
- * If 10 bytes:
- * 	turn off power stage channel `rx_packet[1]`
- *
- * 	Will immediately start autotuning if operation is successful
+ * drive channel `rx_packet[1]` with positive duty cycle `rx_packet[2:5]` and negative duty cycle `rx_packet[6:9]`
  */
 std::pair<Parser::MessageType_t, size_t> Power_Stage_Command_Handlers::stage_manual_duties(	const std::span<uint8_t, std::dynamic_extent> rx_payload,
 																							std::span<uint8_t, std::dynamic_extent> tx_payload)
 {
-	//sanity check that we have space in our transmit payload buffer
-	//return a firmware error code if that doesn't match
-	if(tx_payload.size() < 1) {
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 0); //don't have anywhere to put the TX message
-	}
+	//sanity check the received command
+	uint8_t tx_len;
+	if(!CM_Mapping::VALIDATE_COMMAND(tx_payload, rx_payload, 1, 10, CM_Mapping::STAGE_MANUAL_SET_DUTIES, tx_len))
+		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, tx_len);
 
-	//ensure that our payload is the correct size, first
-	//if not, return a payload size error message
-	if(rx_payload.size() != 9 && rx_payload.size() != 10) {
-		tx_payload[0] = Parser::NACK_ERROR_INVALID_MSG_SIZE;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//sanity check that we were redirected from the correct command code
-	//return a firmware error code if that doesn't match
-	if(rx_payload[0] != CM_Mapping::STAGE_MANUAL_SET_DUTIES) {
-		tx_payload[0] = Parser::NACK_ERROR_INTERNAL_FW;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//grab the particular channel we want to disable
-	std::span<uint8_t, std::dynamic_extent> pos_drive_bytes; //have a place to dump the bytes for our positive half-bridge drive value
-	std::span<uint8_t, std::dynamic_extent> neg_drive_bytes; //have a place to dump the bytes for our negative half-bridge drive value
-	size_t channel = 0;
-	if(rx_payload.size() == 10) { //have a channel encoded in our payload
-		channel = rx_payload[1];
-		pos_drive_bytes = rx_payload.subspan(2, 4); //grab bytes starting at [2]
-		neg_drive_bytes = rx_payload.subspan(6, 4); //grab bytes starting at [6]
-	}
-	else {
-		pos_drive_bytes = rx_payload.subspan(1, 4); //grab bytes starting at [1] (channel is 0)
-		neg_drive_bytes = rx_payload.subspan(5, 4); //grab bytes starting at [5]
-	}
+	//grab the particular channel we want to disable and the drive bytes
+	size_t channel = rx_payload[1];
+	std::span<uint8_t, std::dynamic_extent>	pos_drive_bytes = rx_payload.subspan(2, 4); //grab bytes starting at [2]
+	std::span<uint8_t, std::dynamic_extent>	neg_drive_bytes = rx_payload.subspan(6, 4); //grab bytes starting at [6]
 
 	//check if we can index into the appropriate channel number
 	if(channel >= stages.size()) {
@@ -497,32 +327,15 @@ std::pair<Parser::MessageType_t, size_t> Power_Stage_Command_Handlers::stage_man
 //========================= SET SWITCHING FREQUENCY FOR ALL CHANNELS =========================
 
 /*
- * Have 5 bytes total
- * [0] 		- CommandID
- * [1-4]	- Float for switching frequency (in Hz)
+ * set the switching frequency (in Hz) to `rx_packet[1:4]`
  */
 std::pair<Parser::MessageType_t, size_t> Power_Stage_Command_Handlers::stage_set_fsw(	const std::span<uint8_t, std::dynamic_extent> rx_payload,
 																						std::span<uint8_t, std::dynamic_extent> tx_payload)
 {
-	//sanity check that we have space in our transmit payload buffer
-	//return a firmware error code if that doesn't match
-	if(tx_payload.size() < 1) {
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 0); //don't have anywhere to put the TX message
-	}
-
-	//ensure that our payload is the correct size, first
-	//if not, return a payload size error message
-	if(rx_payload.size() != 5) {
-		tx_payload[0] = Parser::NACK_ERROR_INVALID_MSG_SIZE;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//sanity check that we were redirected from the correct command code
-	//return a firmware error code if that doesn't match
-	if(rx_payload[0] != CM_Mapping::STAGE_SET_FSW) {
-		tx_payload[0] = Parser::NACK_ERROR_INTERNAL_FW;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
+	//sanity check the received command
+	uint8_t tx_len;
+	if(!CM_Mapping::VALIDATE_COMMAND(tx_payload, rx_payload, 1, 5, CM_Mapping::STAGE_SET_FSW, tx_len))
+		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, tx_len);
 
 	//grab the float that was sent over starting at index 1
 	float fsw_hz = unpack_float(rx_payload.subspan(1, 4));

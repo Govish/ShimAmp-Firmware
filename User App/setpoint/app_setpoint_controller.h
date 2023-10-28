@@ -55,6 +55,7 @@ public:
 	float __attribute__((optimize("O3"))) next();
 
 	//=============================== WAVEFORM SELECTION FUNCTIONS ================================
+	bool reset_setpoint(); //reset the setpoint back to zero, trigger immediately
 	bool make_setpoint_dc(bool trigger_gated, float setpoint); //drive just a pure DC current from the amp
 
 private:
@@ -99,6 +100,7 @@ public:
 
 	//========================= INSTANCE METHODS =========================
 	inline bool get_enabled() {return setpoint.get_enabled();}
+	inline bool reset_setpoint() {return setpoint.reset_setpoint();}
 	inline bool make_setpoint_dc(bool trigger_gated, float sp) {return setpoint.make_setpoint_dc(trigger_gated, sp);}
 };
 #endif /* SETPOINT_APP_SETPOINT_CONTROLLER_H_ */

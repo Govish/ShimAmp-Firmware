@@ -16,25 +16,10 @@
 std::pair<Parser::MessageType_t, size_t> Test_Command_Handlers::test_byte(	const std::span<uint8_t, std::dynamic_extent> rx_payload,
 																			std::span<uint8_t, std::dynamic_extent> tx_payload)
 {
-	//sanity check that we have space in our transmit payload buffer
-	//return a firmware error code if that doesn't match
-	if(tx_payload.size() < 1) {
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 0); //don't have anywhere to put the TX message
-	}
-
-	//ensure that our payload is the correct size, first
-	//if not, return a payload size error message
-	if(rx_payload.size() != 2) {
-		tx_payload[0] = Parser::NACK_ERROR_INVALID_MSG_SIZE;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//sanity check that we were redirected from the correct command code
-	//return a firmware error code if that doesn't match
-	if(rx_payload[0] != CM_Mapping::TEST_BYTE) {
-		tx_payload[0] = Parser::NACK_ERROR_INTERNAL_FW;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
+	//sanity check the received command
+	uint8_t tx_len;
+	if(!CM_Mapping::VALIDATE_COMMAND(tx_payload, rx_payload, 1, 1, CM_Mapping::TEST_BYTE, tx_len))
+		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, tx_len);
 
 	//if we didn't receive the correct byte
 	//return a command out of range error message
@@ -52,25 +37,10 @@ std::pair<Parser::MessageType_t, size_t> Test_Command_Handlers::test_byte(	const
 std::pair<Parser::MessageType_t, size_t> Test_Command_Handlers::test_uint32(const std::span<uint8_t, std::dynamic_extent> rx_payload,
 																			std::span<uint8_t, std::dynamic_extent> tx_payload)
 {
-	//sanity check that we have space in our transmit payload buffer
-	//return a firmware error code if that doesn't match
-	if(tx_payload.size() < 1) {
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 0); //don't have anywhere to put the TX message
-	}
-
-	//ensure that our payload is the correct size, first
-	//if not, return a payload size error message
-	if(rx_payload.size() != 5) {
-		tx_payload[0] = Parser::NACK_ERROR_INVALID_MSG_SIZE;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//sanity check that we were redirected from the correct request code
-	//return a firmware error code if that doesn't match
-	if(rx_payload[0] != CM_Mapping::TEST_UINT32) {
-		tx_payload[0] = Parser::NACK_ERROR_INTERNAL_FW;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
+	//sanity check the received command
+	uint8_t tx_len;
+	if(!CM_Mapping::VALIDATE_COMMAND(tx_payload, rx_payload, 1, 5, CM_Mapping::TEST_UINT32, tx_len))
+		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, tx_len);
 
 	//unpack the received uint32 and compare it to the one in our books
 	//return a command out of range error message if it's incorrect
@@ -89,25 +59,10 @@ std::pair<Parser::MessageType_t, size_t> Test_Command_Handlers::test_uint32(cons
 std::pair<Parser::MessageType_t, size_t> Test_Command_Handlers::test_int32(	const std::span<uint8_t, std::dynamic_extent> rx_payload,
 																			std::span<uint8_t, std::dynamic_extent> tx_payload)
 {
-	//sanity check that we have space in our transmit payload buffer
-	//return a firmware error code if that doesn't match
-	if(tx_payload.size() < 1) {
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 0); //don't have anywhere to put the TX message
-	}
-
-	//ensure that our payload is the correct size, first
-	//if not, return a payload size error message
-	if(rx_payload.size() != 5) {
-		tx_payload[0] = Parser::NACK_ERROR_INVALID_MSG_SIZE;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//sanity check that we were redirected from the correct request code
-	//return a firmware error code if that doesn't match
-	if(rx_payload[0] != CM_Mapping::TEST_INT32) {
-		tx_payload[0] = Parser::NACK_ERROR_INTERNAL_FW;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
+	//sanity check the received command
+	uint8_t tx_len;
+	if(!CM_Mapping::VALIDATE_COMMAND(tx_payload, rx_payload, 1, 5, CM_Mapping::TEST_INT32, tx_len))
+		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, tx_len);
 
 	//unpack the received int32 and compare it to the one in our books
 	//return a command out of range error message if it's incorrect
@@ -126,25 +81,10 @@ std::pair<Parser::MessageType_t, size_t> Test_Command_Handlers::test_int32(	cons
 std::pair<Parser::MessageType_t, size_t> Test_Command_Handlers::test_float(	const std::span<uint8_t, std::dynamic_extent> rx_payload,
 																			std::span<uint8_t, std::dynamic_extent> tx_payload)
 {
-	//sanity check that we have space in our transmit payload buffer
-	//return a firmware error code if that doesn't match
-	if(tx_payload.size() < 1) {
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 0); //don't have anywhere to put the TX message
-	}
-
-	//ensure that our payload is the correct size, first
-	//if not, return a payload size error message
-	if(rx_payload.size() != 5) {
-		tx_payload[0] = Parser::NACK_ERROR_INVALID_MSG_SIZE;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//sanity check that we were redirected from the correct request code
-	//return a firmware error code if that doesn't match
-	if(rx_payload[0] != CM_Mapping::TEST_FLOAT) {
-		tx_payload[0] = Parser::NACK_ERROR_INTERNAL_FW;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
+	//sanity check the received command
+	uint8_t tx_len;
+	if(!CM_Mapping::VALIDATE_COMMAND(tx_payload, rx_payload, 1, 5, CM_Mapping::TEST_FLOAT, tx_len))
+		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, tx_len);
 
 	//unpack the received float and compare it to the one in our books
 	//return a command out of range error message if it's incorrect
@@ -163,25 +103,10 @@ std::pair<Parser::MessageType_t, size_t> Test_Command_Handlers::test_float(	cons
 std::pair<Parser::MessageType_t, size_t> Test_Command_Handlers::test_string(const std::span<uint8_t, std::dynamic_extent> rx_payload,
 																			std::span<uint8_t, std::dynamic_extent> tx_payload)
 {
-	//sanity check that we have space in our transmit payload buffer
-	//return a firmware error code if that doesn't match
-	if(tx_payload.size() < 1) {
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 0); //don't have anywhere to put the TX message
-	}
-
-	//ensure that our payload is the correct size, first
-	//if not, return a payload size error message
-	if(rx_payload.size() != 1 + Test_Request_Handlers::the_test_string.size()) {
-		tx_payload[0] = Parser::NACK_ERROR_INVALID_MSG_SIZE;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//sanity check that we were redirected from the correct request code
-	//return a firmware error code if that doesn't match
-	if(rx_payload[0] != CM_Mapping::TEST_STRING) {
-		tx_payload[0] = Parser::NACK_ERROR_INTERNAL_FW;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
+	//sanity check the received command
+	uint8_t tx_len;
+	if(!CM_Mapping::VALIDATE_COMMAND(tx_payload, rx_payload, 1, 1 + Test_Request_Handlers::the_test_string.size(), CM_Mapping::TEST_STRING, tx_len))
+		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, tx_len);
 
 	//do the string comparison using std::equal
 	//return a command out of range error message if the strings aren't equal

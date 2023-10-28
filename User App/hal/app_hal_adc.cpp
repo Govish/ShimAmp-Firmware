@@ -12,12 +12,27 @@
 //ADC instance will be initialized in the constructor, so don't need to worry too much about the NULL here
 Triggered_ADC::Triggered_ADC_Hardware_Channel Triggered_ADC::CHANNEL_3 = {
 		.hadc = &hadc3,
-		.init_func = MX_ADC3_Init,
+		.init_func = Callback_Function(MX_ADC3_Init),
 		.in_mode = Input_Mode::SINGLE_ENDED,
-		.adc_val = 0,
-		.recently_updated = false,
-		.interrupt_callback = empty_cb
+		.interrupt_callback = Context_Callback_Function(),
+		.interrupt_enabled = false,
 };
+
+Triggered_ADC::Triggered_ADC_Hardware_Channel Triggered_ADC::CHANNEL_4 = {
+		.hadc = &hadc4,
+		.init_func = Callback_Function(MX_ADC4_Init),
+		.in_mode = Input_Mode::SINGLE_ENDED,
+		.interrupt_callback = Context_Callback_Function(),
+		.interrupt_enabled = false,
+};
+
+//Triggered_ADC::Triggered_ADC_Hardware_Channel Triggered_ADC::CHANNEL_5 = {
+//		.hadc = &hadc5,
+//		.init_func = MX_ADC5_Init,
+//		.in_mode = Input_Mode::SINGLE_ENDED,
+//		.interrupt_callback = empty_cb,
+//		.interrupt_enabled = false,
+//};
 
 //===================================================================================
 
@@ -73,10 +88,8 @@ void Triggered_ADC::init() {
 	//and conversion right on the trigger event
 	hardware.hadc->Instance->CFGR2 |= ADC_CFGR2_BULB_Msk;
 
-	//enable NVIC interrupts and ADC interrupts
-	hardware.hadc->Instance->IER = CLEAR_ALL_INTERRUPTS; //clear any set interrupt flags by writing 1
-	hardware.hadc->Instance->IER = ADC_IER_EOCIE_Msk; //only want the end of regular conversion interrupt
-	//NVIC gets initialized in the init func; don't have to worry about that here
+	//disable interrupts by default
+	disable_interrupt();
 
 	//start triggered ADC conversions
 	hardware.hadc->Instance->CR |= ADC_CR_ADEN_Msk; //enable the ADC
@@ -86,13 +99,16 @@ void Triggered_ADC::init() {
 
 //correct for ADC reading inaccuracies with this function
 //won't actually scale the ADC value, basically just scaling the conversion constants returned by get_gain_offset()
-void Triggered_ADC::trim(float _gain_trim, float _offset_trim) {
+bool Triggered_ADC::trim(float _gain_trim, float _offset_trim) {
 	//don't allow gain_trim to be 0--unrecoverable
-	if(gain_trim == 0) return;
+	if(gain_trim == 0) return false;
 
 	//perform relative modification of the gain and offset values
 	gain_trim *= _gain_trim;
 	offset_trim += _offset_trim;
+
+	//everything seems kosher
+	return true;
 }
 
 //return the accumulated trim applied to the ADC
@@ -101,22 +117,37 @@ std::pair<float, float> Triggered_ADC::get_trim() {
 }
 
 
-
 //store the appropriate conversion complete callback passed in
-void Triggered_ADC::attach_cb(callback_function_t cb) {
-	if(cb == nullptr) return; //don't take null functions
+void Triggered_ADC::attach_cb(Context_Callback_Function<> cb) {
 	hardware.interrupt_callback = cb; //assign the callback function to the hardware mapping
 }
 
-//get whether the ADC has been updated since last read of the ADC value
-bool Triggered_ADC::get_updated() {
-	return hardware.recently_updated;
+//enable the conversion complete interrupt
+void Triggered_ADC::enable_interrupt() {
+	hardware.hadc->Instance->ISR = Triggered_ADC::CLEAR_ALL_INTERRUPTS; //clear any pending interrupts prior to enable
+	hardware.hadc->Instance->IER = ADC_IER_EOCIE_Msk; //only want the end of regular conversion interrupt
+	//NVIC gets initialized in the init func; don't have to worry about that here
+
+	//set the interrupt enabled flag in the hardware struct
+	hardware.interrupt_enabled = true;
+}
+
+void Triggered_ADC::disable_interrupt() {
+	hardware.hadc->Instance->IER = 0; //disable all interrupts
+
+	//clear the interrupt enabled flag in the hardware struct
+	hardware.interrupt_enabled = false;
+}
+
+bool Triggered_ADC::interrupt_enabled() {
+	//check to see if the interrupt is enabled in the corresponding hardware channel
+	return hardware.interrupt_enabled;
 }
 
 //get the ADC value
-uint16_t Triggered_ADC::get_val(const bool clear_flag) {
-	if(clear_flag) hardware.recently_updated = false; //clear the read flag as necessary
-	return hardware.adc_val;
+uint16_t Triggered_ADC::get_val() {
+	//direct register read
+	return hardware.hadc->Instance->DR;
 }
 
 std::pair<float, float> Triggered_ADC::get_gain_offset() {
@@ -136,11 +167,24 @@ void ADC3_IRQHandler(void) {
 	//clear the interrupts (should just be the end of conversion interrupt)
 	Triggered_ADC::CHANNEL_3.hadc->Instance->ISR = Triggered_ADC::CLEAR_ALL_INTERRUPTS;
 
-	//store the converted value into the data register and update the `recently_updated` flag
-	Triggered_ADC::CHANNEL_3.adc_val = Triggered_ADC::CHANNEL_3.hadc->Instance->DR;
-	Triggered_ADC::CHANNEL_3.recently_updated = true;
-
 	//run the callback function associated with this interrupt
 	Triggered_ADC::CHANNEL_3.interrupt_callback();
 }
+
+void ADC4_IRQHandler(void) {
+	//clear the interrupts (should just be the end of conversion interrupt)
+	Triggered_ADC::CHANNEL_4.hadc->Instance->ISR = Triggered_ADC::CLEAR_ALL_INTERRUPTS;
+
+	//run the callback function associated with this interrupt
+	Triggered_ADC::CHANNEL_4.interrupt_callback();
+}
+
+//uncomment when necessary
+//void ADC5_IRQHandler(void) {
+//	//clear the interrupts (should just be the end of conversion interrupt)
+//	Triggered_ADC::CHANNEL_5.hadc->Instance->ISR = Triggered_ADC::CLEAR_ALL_INTERRUPTS;
+//
+//	//run the callback function associated with this interrupt
+//	Triggered_ADC::CHANNEL_5.interrupt_callback();
+//}
 

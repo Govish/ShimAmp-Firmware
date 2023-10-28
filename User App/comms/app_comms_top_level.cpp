@@ -11,10 +11,16 @@
 //================ REQUEST HANDLER INCLUDES ==============
 #include "app_rqhand_test.h"
 #include "app_rqhand_power_stage_status.h"
+#include "app_rqhand_setpoint.h"
+#include "app_rqhand_control.h"
+#include "app_rqhand_sampler.h"
 
 //================ COMMAND HANDLER INCLUDES ==============
 #include "app_cmhand_test.h"
 #include "app_cmhand_power_stage_ctrl.h"
+#include "app_cmhand_setpoint.h"
+#include "app_cmhand_control.h"
+#include "app_cmhand_sampler.h"
 
 
 //================================= DEFINING STANDARD CONFIGURATION ==============================
@@ -46,9 +52,15 @@ void Comms_Exec_Subsystem::init(uint8_t device_address) {
 	//TODO: register all command and request callbacks here
 	for(auto& [rq_code, rq_callback] : Test_Request_Handlers::request_handlers()) parser.attach_request_cb(rq_code, rq_callback);
 	for(auto& [rq_code, rq_callback] : Power_Stage_Request_Handlers::request_handlers()) parser.attach_request_cb(rq_code, rq_callback);
+	for(auto& [rq_code, rq_callback] : Setpoint_Request_Handlers::request_handlers()) parser.attach_request_cb(rq_code, rq_callback);
+	for(auto& [rq_code, rq_callback] : Controller_Request_Handlers::request_handlers()) parser.attach_request_cb(rq_code, rq_callback);
+	for(auto& [rq_code, rq_callback] : Sampler_Request_Handlers::request_handlers()) parser.attach_request_cb(rq_code, rq_callback);
 
 	for(auto& [cm_code, cm_callback] : Test_Command_Handlers::command_handlers()) parser.attach_command_cb(cm_code, cm_callback);
 	for(auto& [cm_code, cm_callback] : Power_Stage_Command_Handlers::command_handlers()) parser.attach_command_cb(cm_code, cm_callback);
+	for(auto& [cm_code, cm_callback] : Setpoint_Command_Handlers::command_handlers()) parser.attach_command_cb(cm_code, cm_callback);
+	for(auto& [cm_code, cm_callback] : Controller_Command_Handlers::command_handlers()) parser.attach_command_cb(cm_code, cm_callback);
+	for(auto& [cm_code, cm_callback] : Sampler_Command_Handlers::command_handlers()) parser.attach_command_cb(cm_code, cm_callback);
 
 }
 

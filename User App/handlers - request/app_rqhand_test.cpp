@@ -15,26 +15,10 @@
 std::pair<Parser::MessageType_t, size_t> Test_Request_Handlers::test_byte(	const std::span<uint8_t, std::dynamic_extent> rx_payload,
 																			std::span<uint8_t, std::dynamic_extent> tx_payload)
 {
-	//ensure that our payload is the correct size, first
-	//if not, return a payload size error message
-	if(rx_payload.size() != 1) {
-		tx_payload[0] = Parser::NACK_ERROR_INVALID_MSG_SIZE;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//sanity check that we were redirected from the correct request code
-	//return a firmware error code if that doesn't match
-	if(rx_payload[0] != RQ_Mapping::TEST_BYTE) {
-		tx_payload[0] = Parser::NACK_ERROR_INTERNAL_FW;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//sanity check that we have space in our transmit payload buffer
-	//return a firmware error code if that doesn't match
-	if(tx_payload.size() < 2) {
-		tx_payload[0] = Parser::NACK_ERROR_INTERNAL_FW;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
+	//sanity check the received request
+	uint8_t tx_len;
+	if(!RQ_Mapping::VALIDATE_REQUEST(tx_payload, rx_payload, 2, 1, RQ_Mapping::TEST_BYTE, tx_len))
+		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, tx_len);
 
 	//everything's kosher
 	tx_payload[0] = RQ_Mapping::TEST_BYTE; //this is the request we serviced
@@ -45,26 +29,10 @@ std::pair<Parser::MessageType_t, size_t> Test_Request_Handlers::test_byte(	const
 std::pair<Parser::MessageType_t, size_t> Test_Request_Handlers::test_uint32(const std::span<uint8_t, std::dynamic_extent> rx_payload,
 																			std::span<uint8_t, std::dynamic_extent> tx_payload)
 {
-	//ensure that our payload is the correct size, first
-	//if not, return a payload size error message
-	if(rx_payload.size() != 1) {
-		tx_payload[0] = Parser::NACK_ERROR_INVALID_MSG_SIZE;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//sanity check that we were redirected from the correct request code
-	//return a firmware error code if that doesn't match
-	if(rx_payload[0] != RQ_Mapping::TEST_UINT32) {
-		tx_payload[0] = Parser::NACK_ERROR_INTERNAL_FW;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//sanity check that we have space in our transmit payload buffer
-	//return a firmware error code if that doesn't match
-	if(tx_payload.size() < 5) {
-		tx_payload[0] = Parser::NACK_ERROR_INTERNAL_FW;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
+	//sanity check the received request
+	uint8_t tx_len;
+	if(!RQ_Mapping::VALIDATE_REQUEST(tx_payload, rx_payload, 5, 1, RQ_Mapping::TEST_UINT32, tx_len))
+		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, tx_len);
 
 	//everything's kosher
 	tx_payload[0] = RQ_Mapping::TEST_UINT32; //this is the request we serviced
@@ -75,26 +43,10 @@ std::pair<Parser::MessageType_t, size_t> Test_Request_Handlers::test_uint32(cons
 std::pair<Parser::MessageType_t, size_t> Test_Request_Handlers::test_int32(	const std::span<uint8_t, std::dynamic_extent> rx_payload,
 																			std::span<uint8_t, std::dynamic_extent> tx_payload)
 {
-	//ensure that our payload is the correct size, first
-	//if not, return a payload size error message
-	if(rx_payload.size() != 1) {
-		tx_payload[0] = Parser::NACK_ERROR_INVALID_MSG_SIZE;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//sanity check that we were redirected from the correct request code
-	//return a firmware error code if that doesn't match
-	if(rx_payload[0] != RQ_Mapping::TEST_INT32) {
-		tx_payload[0] = Parser::NACK_ERROR_INTERNAL_FW;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//sanity check that we have space in our transmit payload buffer
-	//return a firmware error code if that doesn't match
-	if(tx_payload.size() < 5) {
-		tx_payload[0] = Parser::NACK_ERROR_INTERNAL_FW;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
+	//sanity check the received request
+	uint8_t tx_len;
+	if(!RQ_Mapping::VALIDATE_REQUEST(tx_payload, rx_payload, 5, 1, RQ_Mapping::TEST_INT32, tx_len))
+		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, tx_len);
 
 	//everything's kosher
 	tx_payload[0] = RQ_Mapping::TEST_INT32; //this is the request we serviced
@@ -105,26 +57,10 @@ std::pair<Parser::MessageType_t, size_t> Test_Request_Handlers::test_int32(	cons
 std::pair<Parser::MessageType_t, size_t> Test_Request_Handlers::test_float(	const std::span<uint8_t, std::dynamic_extent> rx_payload,
 																			std::span<uint8_t, std::dynamic_extent> tx_payload)
 {
-	//ensure that our payload is the correct size, first
-	//if not, return a payload size error message
-	if(rx_payload.size() != 1) {
-		tx_payload[0] = Parser::NACK_ERROR_INVALID_MSG_SIZE;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//sanity check that we were redirected from the correct request code
-	//return a firmware error code if that doesn't match
-	if(rx_payload[0] != RQ_Mapping::TEST_FLOAT) {
-		tx_payload[0] = Parser::NACK_ERROR_INTERNAL_FW;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//sanity check that we have space in our transmit payload buffer
-	//return a firmware error code if that doesn't match
-	if(tx_payload.size() < 5) {
-		tx_payload[0] = Parser::NACK_ERROR_INTERNAL_FW;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
+	//sanity check the received request
+	uint8_t tx_len;
+	if(!RQ_Mapping::VALIDATE_REQUEST(tx_payload, rx_payload, 5, 1, RQ_Mapping::TEST_FLOAT, tx_len))
+		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, tx_len);
 
 	//everything's kosher
 	tx_payload[0] = RQ_Mapping::TEST_FLOAT; //this is the request we serviced
@@ -135,26 +71,10 @@ std::pair<Parser::MessageType_t, size_t> Test_Request_Handlers::test_float(	cons
 std::pair<Parser::MessageType_t, size_t> Test_Request_Handlers::test_string(const std::span<uint8_t, std::dynamic_extent> rx_payload,
 																			std::span<uint8_t, std::dynamic_extent> tx_payload)
 {
-	//ensure that our payload is the correct size, first
-	//if not, return a payload size error message
-	if(rx_payload.size() != 1) {
-		tx_payload[0] = Parser::NACK_ERROR_INVALID_MSG_SIZE;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//sanity check that we were redirected from the correct request code
-	//return a firmware error code if that doesn't match
-	if(rx_payload[0] != RQ_Mapping::TEST_STRING) {
-		tx_payload[0] = Parser::NACK_ERROR_INTERNAL_FW;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
-
-	//sanity check that we have space in our transmit payload buffer
-	//return a firmware error code if that doesn't match
-	if(tx_payload.size() < (the_test_string.size() + 1)) {
-		tx_payload[0] = Parser::NACK_ERROR_INTERNAL_FW;
-		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, 1);
-	}
+	//sanity check the received request
+	uint8_t tx_len;
+	if(!RQ_Mapping::VALIDATE_REQUEST(tx_payload, rx_payload, the_test_string.size() + 1, 1, RQ_Mapping::TEST_STRING, tx_len))
+		return std::make_pair(Parser::DEVICE_NACK_HOST_MESSAGE, tx_len);
 
 	//everything's kosher
 	tx_payload[0] = RQ_Mapping::TEST_STRING; //this is the request we serviced

@@ -22,7 +22,7 @@ Biquad::Biquad_Params Biquad::make_lowpass(float corner_freq, float Q, float sam
 	//I HAVEN'T SANITY CHECKED THAT EDGE CASE, TODO NOTING THAT HERE
 	if(corner_freq * 2 > sampling_freq) return {0};
 
-	float omega = 2.0f * (float)PI * corner_freq / sampling_freq;
+	float omega = TWO_PI * corner_freq / sampling_freq;
 	float alpha = std::sin(omega) / (2.0f * Q);
 	float cos_omega = std::cos(omega);
 	float a_0 = 1 + alpha;
@@ -56,7 +56,7 @@ void Biquad::update_params(Biquad::Biquad_Params new_params) {
 	params = new_params;
 
 	//compute the new DC gain; solve biquad polynomial for z = 1
-	dc_gain = (params.b_0 + params.b_1 + params.b_2) / (params.a_1 + params.a_2);
+	dc_gain = (params.b_0 + params.b_1 + params.b_2) / (1 + params.a_1 + params.a_2);
 
 	//force a reset given the new parameters
 	reset();

@@ -48,11 +48,11 @@ private:
 	static constexpr std::array the_test_string = s2a("Congrats! You decoded this message correctly!\r\n"); //store as array to make encoding easy
 
 	static constexpr std::array<Parser::request_mapping_t, 5> REQUEST_HANDLERS = {
-			make_pair(RQ_Mapping::TEST_BYTE, test_byte),
-			make_pair(RQ_Mapping::TEST_UINT32, test_uint32),
-			make_pair(RQ_Mapping::TEST_INT32, test_int32),
-			make_pair(RQ_Mapping::TEST_FLOAT, test_float),
-			make_pair(RQ_Mapping::TEST_STRING, test_string)
+			std::make_pair(RQ_Mapping::TEST_BYTE, test_byte),
+			std::make_pair(RQ_Mapping::TEST_UINT32, test_uint32),
+			std::make_pair(RQ_Mapping::TEST_INT32, test_int32),
+			std::make_pair(RQ_Mapping::TEST_FLOAT, test_float),
+			std::make_pair(RQ_Mapping::TEST_STRING, test_string)
 	};
 };
 

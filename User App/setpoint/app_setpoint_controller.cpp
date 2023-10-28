@@ -84,6 +84,19 @@ float Setpoint::next() {
 }
 
 //=========================== WAVEFORM INSTANTIATIONS ==========================
+bool Setpoint::reset_setpoint() {
+	//only allow this when the controller is enabled
+	if(!enabled) return false;
+
+	//just force all of our waveforms to be zero
+	active_waveform = &zero_drive;
+	trigger_asserted_waveform = &zero_drive;
+	trigger_deasserted_waveform = &zero_drive;
+
+	//everything went according to plan
+	return true;
+}
+
 bool Setpoint::make_setpoint_dc(bool trigger_gated, float setpoint) {
 	//only allow this when the controller is enabled
 	if(!enabled) return false;

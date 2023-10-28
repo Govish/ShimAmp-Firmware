@@ -33,7 +33,6 @@
 class Sampler_Wrapper;
 
 class Sampler {
-	friend class Sampler_Wrapper; //let the wrapper access the ADC instances
 public:
 	//initialize with 4 ADC hardware channels
 	Sampler(	Triggered_ADC::Triggered_ADC_Hardware_Channel& h_curr_fine,
@@ -48,8 +47,8 @@ public:
 	//call this before anything; initialize our ADC hardware and any kinda configuration details
 	void init();
 
-	//attach a callback function after all four channels have been sampled
-	void attach_sample_cb(callback_function_t cb);
+	//attach a callback function called after channels have been sampled
+	void attach_sample_cb(Context_Callback_Function<> cb);
 
 	/*
 	 * ADC limits and trimming
@@ -59,9 +58,15 @@ public:
 	 *
 	 * NOTE: ADC LIMITS ARE EXCLUSIVE! Trim functions are just passthroughs to the ADC trimming basically
 	 */
-	void set_limits_fine(const uint16_t min_code, const uint16_t max_code);
-	void trim_fine(float gain_trim, float offset_trim);
-	void trim_coarse(float gain_trim, float offset_trim);
+	bool set_limits_fine(const uint32_t min_code, const uint32_t max_code);
+	bool trim_fine(float gain_trim, float offset_trim);
+	bool trim_coarse(float gain_trim, float offset_trim);
+
+	//getter functions for the above methods
+	//these methods will pull from configuration--ensures that configuration is as desired
+	std::pair<uint32_t, uint32_t> get_limits_fine();
+	std::pair<float, float> get_trim_fine();
+	std::pair<float, float> get_trim_coarse();
 
 	/*
 	 * return current as a floating point measurement (in Amps)
@@ -70,8 +75,12 @@ public:
 	 * heavily optimize since we'll be calling from control loop
 	 * returns current in real world units (might as well, since we'll need to apply correct ADC scaling here anyway)
 	 * 	gains/scaling constants specified by the ADC instances
+	 *
+	 * 	Additionally, provide interfaces to read the raw ADC values from the sampler
 	 */
 	float __attribute__((optimize("O3"))) get_current_reading();
+	uint16_t get_raw_fine();
+	uint16_t get_raw_coarse();
 
 	/*
 	 * Enable or disable the interrupt callback from running
@@ -121,10 +130,7 @@ private:
 
 	//=========================== ADDITIONAL MEMBER VARIABLES ===========================
 
-	size_t num_updates_received = 0; //if we receive readings from all channels, run the callback function
-	const size_t NUM_REQUIRED_READINGS = 2; //want to make sure we get readings from both current channels before running the callback
-	callback_function_t sample_callback = empty_cb; //call this function when we've received all of our samples
-	bool callback_enable = false; //whether we should actually run the user callback function
+	bool callback_enable = false; //doesn't actively control behavior, just a flag essentially
 
 	Configuration::Configuration_Params& config; //configuration structure to read/write
 	const size_t index;
@@ -158,13 +164,17 @@ public:
 
 	//##### RAW ADC READS #####
 	//don't clear the recently_updated flag since these are just diagnostic
-	inline uint16_t read_fine_raw() {return sampler.curr_fine.get_val(false);}
-	inline uint16_t read_coarse_raw() {return sampler.curr_coarse.get_val(false);}
+	inline uint16_t read_fine_raw() {return sampler.get_raw_fine();}
+	inline uint16_t read_coarse_raw() {return sampler.get_raw_coarse();}
 
 	//==================== INSTANCE SETTERS =================
-	inline void set_limits_fine(const uint16_t min_code, const uint16_t max_code) {sampler.set_limits_fine(min_code, max_code);} //forward to sampler
-	inline void trim_fine(float gain_trim, float offset_trim) {sampler.trim_fine(gain_trim, offset_trim);} //forward to sampler
-	inline void trim_coarse(float gain_trim, float offset_trim) {sampler.trim_coarse(gain_trim, offset_trim);} //forward to sampler
+	inline bool set_limits_fine(const uint16_t min_code, const uint16_t max_code) { return sampler.set_limits_fine(min_code, max_code);} //forward to sampler
+	inline bool trim_fine(float gain_trim, float offset_trim) { return sampler.trim_fine(gain_trim, offset_trim);} //forward to sampler
+	inline bool trim_coarse(float gain_trim, float offset_trim) { return sampler.trim_coarse(gain_trim, offset_trim);} //forward to sampler
+	inline std::pair<uint32_t, uint32_t> get_limits_fine() { return sampler.get_limits_fine(); }
+	inline std::pair<float, float> get_trim_fine() { return sampler.get_trim_fine(); }
+	inline std::pair<float, float> get_trim_coarse() { return sampler.get_trim_coarse(); }
+
 };
 
 #endif /* POWER_STAGE_CONTROL_APP_POWER_STAGE_SAMPLER_H_ */

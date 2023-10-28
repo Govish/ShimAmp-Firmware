@@ -10,8 +10,18 @@
 #include <algorithm> //for stl versions of memcpy
 
 ///========================= initialization of static fields ========================
-//UART instance will be initialized in the constructor, so don't need to worry too much about the NULL here
-UART::UART_Hardware_Channel UART::LPUART = {&hlpuart1, MX_LPUART1_UART_Init, NULL};
+//don't need to worry about the null pointer really--UART instance will be initialized before it has a chance to be called
+UART::UART_Hardware_Channel UART::LPUART = {
+		.huart = &hlpuart1,
+		.init_func = Callback_Function(MX_LPUART1_UART_Init),
+		.rx_interrupt = Instance_Callback_Function<UART>(),
+};
+
+UART::UART_Hardware_Channel UART::UART3 = {
+		.huart = &huart3,
+		.init_func = Callback_Function(MX_USART3_UART_Init),
+		.rx_interrupt = Instance_Callback_Function<UART>(),
+};
 
 //===================================================================================
 
@@ -19,8 +29,8 @@ UART::UART(	UART_Hardware_Channel& _hardware, const uint8_t _START_OF_FRAME, con
 			std::span<uint8_t, std::dynamic_extent> _txbuf, std::span<uint8_t, std::dynamic_extent> _rxbuf):
 	hardware(_hardware), START_OF_FRAME(_START_OF_FRAME), END_OF_FRAME(_END_OF_FRAME), txbuf(_txbuf), rxbuf(_rxbuf)
 {
-	//point the hardware structure to the particular firmware instance
-	hardware.instance = this;
+	//register the instance callback function with the particular hardware channel
+	hardware.rx_interrupt = Instance_Callback_Function<UART>(this, &UART::RX_interrupt_handler);
 }
 
 void UART::init() {
@@ -69,7 +79,6 @@ size_t UART::get_packet(std::span<uint8_t, std::dynamic_extent> rx_packet) {
 	return packet_size;
 }
 
-void UART::attach_uart_error_callback(const callback_function_t _err_cb) { this->err_cb = _err_cb; }
 bool UART::ready_to_send() { return hardware.huart->gState == HAL_UART_STATE_READY; }
 bool UART::uart_ok() { return HAL_UART_GetError(hardware.huart) == HAL_UART_ERROR_NONE; }
 bool UART::available() { return received_packet_pending; }
@@ -115,20 +124,11 @@ void UART::RX_interrupt_handler() {
 	HAL_UART_Receive_IT(hardware.huart, &received_char, 1);
 }
 
-//just run the error callback when the error handler is invoked
-void UART::error_handler() {
-	this->err_cb();
-}
-
 //======================================= PROCESSOR ISRs ====================================
 //TODO: optimize the UART ISRs to be lighter weight and only use the functions we need; implement RX Fifo full callback
 
 //call the appropriate RX complete interrupt handler according to which UART caused the interrupt
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-	if(huart == UART::LPUART.huart) UART::LPUART.instance->RX_interrupt_handler();
-}
-
-//call the appropriate RX complete interrupt handler according to which UART caused the interrupt
-void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
-	if(huart == UART::LPUART.huart) UART::LPUART.instance->error_handler();
+	if(huart == UART::LPUART.huart) UART::LPUART.rx_interrupt();
+	if(huart == UART::UART3.huart) UART::UART3.rx_interrupt();
 }

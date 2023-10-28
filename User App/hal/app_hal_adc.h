@@ -12,7 +12,8 @@
 
 #include <utility> //for pair
 
-#include "app_hal_int_utils.h" //for callback type
+#include "app_hal_int_utils.h" //for ISRs
+#include "app_utils.h" //for callback type
 
 extern "C" {
 	#include "stm32g474xx.h" //for types
@@ -30,14 +31,15 @@ public:
 
 	struct Triggered_ADC_Hardware_Channel {
 		ADC_HandleTypeDef* const hadc;
-		const callback_function_t init_func;
+		const Callback_Function init_func;
 		const Input_Mode in_mode; //channel is either single-ended or differential
-		uint16_t adc_val;
-		bool recently_updated;
-		callback_function_t interrupt_callback;
+		Context_Callback_Function<> interrupt_callback; //KEEP THIS A GENERIC CALLBACK FUNCTION --> allow mapping to different instance types
+		bool interrupt_enabled; //whether the conversion complete interrupt for the particular channel is enabled
 	};
 
 	static Triggered_ADC_Hardware_Channel CHANNEL_3;
+	static Triggered_ADC_Hardware_Channel CHANNEL_4;
+	//static Triggered_ADC_Hardware_Channel CHANNEL_5; CREATE THIS CHANNEL AS NECESSARY
 
 	//=================== REGISTER DEFS ==================
 
@@ -58,20 +60,21 @@ public:
 	void init();
 
 	//map a callback function that called during a conversion complete interrupt
-	void attach_cb(callback_function_t cb);
+	//additionally provide functions do enable/disable the conversion complete interrupt
+	void attach_cb(Context_Callback_Function<> cb); //keep the callback function generic
+	void enable_interrupt();
+	void disable_interrupt();
+	bool interrupt_enabled();
 
 	//adjust the gain and the offset of the ADC
 	//just modifying the control gains and offset since we'll have to do computation with this anyway
 	//GAIN in units ratio that's multiplying the existing gain
 	//OFFSET in unit `ADC_counts` that's summing into the existing offset
-	void trim(float _gain_trim, float _offset_trim);
+	bool trim(float _gain_trim, float _offset_trim);
 	std::pair<float, float> get_trim(); //returns gain_trim, offset_trim
 
-	//get whether there has been a new ADC reading since the previous value had been read out
-	bool get_updated();
-
 	//get the ADC value; heavily optimize since we'll be running this in the control loop
-	uint16_t __attribute__((optimize("O3"))) get_val(const bool clear_flag = true); //optionally dont' clear the `recently_triggered` flag
+	uint16_t __attribute__((optimize("O3"))) get_val();
 
 	//for control loop, get the voltage --> ADC code transfer coefficients (takes into account single-ended vs differential mode operation)
 	//pair is in the form of <gain, offset>, such that gain, offset satisfy the following equation (adc voltage input, adc code output)

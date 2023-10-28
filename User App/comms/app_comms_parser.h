@@ -107,18 +107,18 @@ public:
 	//================================================= TYPEDEFS =================================================
 
 	//enum types for different messages that can be exchanged
-	typedef enum {
+	enum MessageType_t {
 		HOST_COMMAND_ALL_DEVICES = 		(uint8_t)0x0,
 		HOST_COMMAND_TO_DEVICE = 		(uint8_t)0x1,
 		HOST_REQUEST_FROM_DEVICE = 		(uint8_t)0x2,
 		DEVICE_NACK_HOST_MESSAGE = 		(uint8_t)0x4,
 		DEVICE_ACK_HOST_MESSAGE = 		(uint8_t)0x5,
 		DEVICE_RESPONSE_HOST_REQUEST =	(uint8_t)0x6,
-	} MessageType_t;
+	} ;
 	static constexpr uint8_t MESSAGE_TYPE_MASK = 0x07; //mask the MTYPE packet with this to look up the message type
 
 	//enum type for not-acknowledge responses
-	typedef enum {
+	enum NACKErrorTypes_t {
 		NACK_ERROR_UNKNOWN = 				(uint8_t)0x00,
 		NACK_ERROR_INTERNAL_FW = 			(uint8_t)0x01,
 		NACK_ERROR_INVALID_CRC = 			(uint8_t)0x02,
@@ -129,7 +129,7 @@ public:
 		NACK_ERROR_COMMAND_OUT_OF_RANGE = 	(uint8_t)0x07,
 		NACK_ERROR_COMMAND_EXEC_FAILED = 	(uint8_t)0x08,
 		NACK_ERROR_SYSTEM_BUSY = 			(uint8_t)0x09,
-	} NACKErrorTypes_t;
+	};
 
 	static constexpr size_t ID_INDEX = 0;
 	static constexpr size_t MTYPE_INDEX = 1;

@@ -29,6 +29,12 @@ public:
 	static Biquad_Params make_gains(float desired_dc_gain, float f_crossover,
 									std::span<float, std::dynamic_extent> other_loop_gains, float fs);
 
+	//design biquad parameters for a feed-forward transfer function
+	//calculates a 'nominal' actuator command based off setpoint dynamics; controller servos around this command
+	//compensates for system forward path gains and load dynamics by placing a zero at the load's pole frequency
+	//places a pole near nyquist in order to keep the feed-forward system causal
+	static Biquad_Params make_gains(std::span<float, std::dynamic_extent> system_gains, float load_zero, float fs);
+
 	//============================== INSTANCE FUNCTIONS ==========================
 
 	//constructor, just forward to Biquad

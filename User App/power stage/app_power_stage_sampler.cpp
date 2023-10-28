@@ -36,11 +36,9 @@ void Sampler::init() {
 	trim_coarse(config.POWER_STAGE_CONFIGS[index].COARSE_GAIN_TRIM,
 				config.POWER_STAGE_CONFIGS[index].COARSE_OFFSET_TRIM);
 
-	//hook up our interrupt callback function to the ADC interrupt
-	//have to capture this particular instance when we pass the handlers--doing this via lambda function
-	//https://stackoverflow.com/questions/44791928/pass-member-function-as-parameter-to-other-member-function-c-11-function
-	curr_fine.attach_cb([this](){SAMPLE_ISR();});
-	curr_coarse.attach_cb([this](){SAMPLE_ISR();});
+	//controller starts out as disabled
+	//as such, disable the sampling callbacks for both channels
+	disable_callback();
 }
 
 //=================== MEASUREMENT FUNCTION ==================
@@ -68,6 +66,14 @@ float Sampler::get_current_reading() {
 	return iread;
 }
 
+uint16_t Sampler::get_raw_fine() {
+	return curr_fine.get_val();
+}
+
+uint16_t Sampler::get_raw_coarse() {
+	return curr_coarse.get_val();
+}
+
 bool Sampler::get_running() {
 	return HRPWM::GET_ALL_ENABLED();
 }
@@ -83,16 +89,28 @@ float Sampler::get_gain() {
 
 //================================== BASIC ASSIGNMENT FUNCTIONS ============================
 
-void Sampler::attach_sample_cb(callback_function_t cb) {
-	if(cb == nullptr) return;
-	sample_callback = cb;
+void Sampler::attach_sample_cb(Context_Callback_Function<> cb) {
+	//attach the callback function to the interrupts
+	curr_fine.attach_cb(cb);
+	curr_coarse.attach_cb(cb);
 }
 
 void Sampler::enable_callback() {
+	//disable just the COARSE ADC callback, and enable the fine callback;
+	//since `fine` channel will be read first
+	curr_coarse.disable_interrupt();
+	curr_fine.enable_interrupt();
+
+	//assert a flag
 	callback_enable = true;
 }
 
 void Sampler::disable_callback() {
+	//disable both ADC conversion interrupts
+	curr_fine.disable_interrupt();
+	curr_coarse.disable_interrupt();
+
+	//deassert the flag
 	callback_enable = false;
 }
 
@@ -100,7 +118,12 @@ bool Sampler::get_callback_enabled() {
 	return callback_enable;
 }
 
-void Sampler::set_limits_fine(const uint16_t min_code, const uint16_t max_code) {
+bool Sampler::set_limits_fine(const uint32_t min_code, const uint32_t max_code) {
+	//sanity check the inputs
+	if(min_code > 0xFFFF) return false;
+	if(max_code > 0xFFFF) return false;
+	if(min_code > max_code) return false;
+
 	//update internally maintained codes
 	if_min = min_code;
 	if_max = max_code;
@@ -108,12 +131,16 @@ void Sampler::set_limits_fine(const uint16_t min_code, const uint16_t max_code) 
 	//and also update the configuration
 	config.POWER_STAGE_CONFIGS[index].FINE_RANGE_VALID_LOW = min_code;
 	config.POWER_STAGE_CONFIGS[index].FINE_RANGE_VALID_HIGH	= max_code;
+
+	//everything is kosher
+	return true;
 }
 
 //trim the coarse ADC, recompute constants, and adjust configuration
-void Sampler::trim_coarse(float gain_trim, float offset_trim) {
-	//trim the ADC
-	curr_coarse.trim(gain_trim, offset_trim);
+bool Sampler::trim_coarse(float gain_trim, float offset_trim) {
+	//try to trim the ADC
+	if(!curr_coarse.trim(gain_trim, offset_trim))
+		return false;
 
 	//compute the coarse channel overall gain and offset
 	//such that we get +/- current after applying (`ADC_counts` - offset) / gain
@@ -127,12 +154,16 @@ void Sampler::trim_coarse(float gain_trim, float offset_trim) {
 	auto [total_gain_trim, total_offset_trim] = curr_coarse.get_trim();
 	config.POWER_STAGE_CONFIGS[index].COARSE_GAIN_TRIM = total_gain_trim;
 	config.POWER_STAGE_CONFIGS[index].COARSE_OFFSET_TRIM = total_offset_trim;
+
+	//everything worked out fine
+	return true;
 }
 
 //trim the fine ADC, adjust config, and recompute constants
-void Sampler::trim_fine(float gain_trim, float offset_trim) {
-	//trim the ADC
-	curr_fine.trim(gain_trim, offset_trim);
+bool Sampler::trim_fine(float gain_trim, float offset_trim) {
+	//try to trim the ADC
+	if(!curr_fine.trim(gain_trim, offset_trim))
+		return false;
 
 	//compute the coarse channel overall gain and offset
 	//such that we get +/- current after applying (`ADC_counts` - offset) / gain
@@ -146,16 +177,22 @@ void Sampler::trim_fine(float gain_trim, float offset_trim) {
 	auto [total_gain_trim, total_offset_trim] = curr_fine.get_trim();
 	config.POWER_STAGE_CONFIGS[index].FINE_GAIN_TRIM = total_gain_trim;
 	config.POWER_STAGE_CONFIGS[index].FINE_OFFSET_TRIM = total_offset_trim;
+
+	//everything went alright
+	return true;
 }
 
-//====================================== PRIVATE ISR ========================================
-void Sampler::SAMPLE_ISR() {
-	num_updates_received++; //one more sample from an ADC
-	if(num_updates_received < NUM_REQUIRED_READINGS) return; //check if we have all samples
+std::pair<uint32_t, uint32_t> Sampler::get_limits_fine() {
+	return std::make_pair(	config.POWER_STAGE_CONFIGS[index].FINE_RANGE_VALID_LOW,
+							config.POWER_STAGE_CONFIGS[index].FINE_RANGE_VALID_HIGH);
+}
 
-	//we have all our samples, run the callback if it's enabled
-	if(callback_enable) sample_callback();
+std::pair<float, float> Sampler::get_trim_fine() {
+	return std::make_pair(	config.POWER_STAGE_CONFIGS[index].FINE_GAIN_TRIM,
+							config.POWER_STAGE_CONFIGS[index].FINE_OFFSET_TRIM);
+}
 
-	//and reset the number of ADCs we've gotten updates from
-	num_updates_received = 0;
+std::pair<float, float> Sampler::get_trim_coarse() {
+	return std::make_pair(	config.POWER_STAGE_CONFIGS[index].COARSE_GAIN_TRIM,
+							config.POWER_STAGE_CONFIGS[index].COARSE_OFFSET_TRIM);
 }

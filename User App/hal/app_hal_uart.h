@@ -35,7 +35,8 @@
 #include <array> //for stl arrays
 #include <span> //for c++ style pointer+length data structures
 
-#include "app_hal_int_utils.h" //for callback type
+#include "app_hal_int_utils.h" //for ISRs
+#include "app_utils.h" //for callback type
 
 extern "C" {
 	#include "stm32g474xx.h" //for types
@@ -48,10 +49,12 @@ public:
 
 	struct UART_Hardware_Channel {
 		UART_HandleTypeDef* const huart;
-		const callback_function_t init_func;
-		UART* instance; //points to the firmware instance corresponding to this hardware
+		const Callback_Function init_func;
+		Instance_Callback_Function<UART> rx_interrupt;
 	};
+
 	static UART_Hardware_Channel LPUART;
+	static UART_Hardware_Channel UART3;
 
 	//===============================================================================================================
 
@@ -66,14 +69,13 @@ public:
 	//returns 0 if no packet received, otherwise copies packet over to rx_packet and returns length of packet
 	size_t get_packet(std::span<uint8_t, std::dynamic_extent> rx_packet);
 
-	void attach_uart_error_callback(const callback_function_t _err_cb); //function called when some UART error state occurs; MAY BE CALLED FROM ISR CONTEXT
 	bool ready_to_send(); //return true if the transmitter is ready to send data
 	bool uart_ok(); //return true if there are no error states in the UART
 	bool available(); //return true if we have a packet waiting
 
 	//these functions are just called by interrupts; USER SHOULDN'T INTERACT WITH THESE
 	void __attribute__((optimize("O3"))) RX_interrupt_handler();
-	void __attribute__((optimize("O3"))) error_handler();
+
 private:
 	//reference details relevant to the hardware channel (the class owns this, not the instance)
 	UART_Hardware_Channel& hardware;
@@ -91,9 +93,6 @@ private:
 	//variables relevant to receiving process
 	volatile bool received_sof_good_packet = false; //we've received a SOF character and waiting for an EOF character
 	volatile bool received_packet_pending = false; //flag to signal that an entire packet has been received and hasn't been serviced
-
-	//callback function when UART error occurs
-	callback_function_t err_cb = empty_cb;
 };
 
 #endif /* HAL_APP_HAL_UART_H_ */

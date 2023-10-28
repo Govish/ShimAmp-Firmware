@@ -48,11 +48,18 @@ public:
 	bool update_load_resistance(float new_load_resistance);
 	bool update_load_natural_freq(float new_load_natural_freq);
 
+	//get control parameters (likely just going to be reading from configuration
+	float get_gain();
+	float get_crossover_freq();
+	float get_load_resistance();
+	float get_load_natural_freq();
+
 	//call periodically at a lower priority to update the compensator DC gain based off supply voltage
 	void __attribute__((optimize("O3"))) trim_gain(); //still want this to be kinda fast
 
 private:
 	//================= MAIN REGULATION FUNCTION; CALLED BY SAMPLER ==================
+	static void __attribute__((optimize("O3"))) regulate_forwarder(void* context);
 	void __attribute__((optimize("O3"))) regulate();
 
 	//============================ MEMBER CLASS REFERENCES AND INSTANCES ============================
@@ -87,6 +94,11 @@ public:
 	inline bool update_crossover_freq(float freq) {return regulator.update_crossover_freq(freq);}
 	inline bool update_load_resistance(float res) {return regulator.update_load_resistance(res);}
 	inline bool update_load_natural_freq(float freq) {return regulator.update_load_natural_freq(freq);}
+
+	inline float get_gain() {return regulator.get_gain();}
+	inline float get_crossover_freq() {return regulator.get_crossover_freq();}
+	inline float get_load_resistance() {return regulator.get_load_resistance();}
+	inline float get_load_natural_freq() {return regulator.get_load_natural_freq();}
 };
 
 #endif /* CONTROL_APP_CONTROL_REGULATOR_H_ */
