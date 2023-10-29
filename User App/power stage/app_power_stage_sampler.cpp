@@ -53,8 +53,8 @@ float Sampler::get_current_reading() {
 
 	//read the current range
 	//read the fine range is within appropriate limits, use that as our measurement
-	//if_read = curr_fine.get_val();
-	if(false){//if_read < if_max && if_read > if_min) {
+	if_read = curr_fine.get_val();
+	if(true){//if_read < if_max && if_read > if_min) {
 		iread = ((float)if_read - fine_offset_counts) / fine_total_gain; //scale current reading by appropriate scaling factor, and apply zero offset
 	}
 

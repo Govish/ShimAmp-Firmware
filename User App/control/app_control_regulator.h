@@ -54,13 +54,10 @@ public:
 	float get_load_resistance();
 	float get_load_natural_freq();
 
-	//call periodically at a lower priority to update the compensator DC gain based off supply voltage
-	void __attribute__((optimize("O3"))) trim_gain(); //still want this to be kinda fast
-
 private:
 	//================= MAIN REGULATION FUNCTION; CALLED BY SAMPLER ==================
 	static void __attribute__((optimize("O3"))) regulate_forwarder(void* context);
-	void /*__attribute__((optimize("O3")))*/ regulate();
+	void __attribute__((optimize("O3"))) regulate();
 
 	//============================ MEMBER CLASS REFERENCES AND INSTANCES ============================
 	Power_Stage& stage; //maintain a reference to a power stage

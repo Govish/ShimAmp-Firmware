@@ -83,7 +83,10 @@ public:
 	std::pair<float, float> get_gain_offset(); //[gain, offset]
 
 	//return the maximum ADC code for any kinda relevant gain/offset calculations
-	float get_adc_max_code();
+	//defining as constexpr so we can use this to size stuff at compile time
+	inline constexpr float get_adc_max_code() {
+		return ADC_MAX_CODE;
+	}
 
 private:
 

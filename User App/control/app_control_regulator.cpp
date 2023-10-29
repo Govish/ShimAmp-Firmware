@@ -79,7 +79,7 @@ bool Regulator::recompute_rate(	float desired_dc_gain,
 	//additionally, update the setpoint controller with any new sampling rates now too
 	//this is in the event that sampling frequency was changed-->reconstruction filter coefficients need to be updated
 	//ensure that this update goes smoothly
-	if(!setpoint.recompute_rate(params.POWER_STAGE_CONFIGS[index].SETPOINT_RECON_BANDWIDTH))
+	if(!setpoint.recompute_rate())
 		return false;
 
 	//initialize the compensator with the computed biquad constants
@@ -146,24 +146,6 @@ float Regulator::get_load_natural_freq() {
 	return params.POWER_STAGE_CONFIGS[index].LOAD_CHARACTERISTIC_FREQ;
 }
 
-
-
-//###### GAIN TRIMMING ######
-
-void Regulator::trim_gain() {
-	//create an array of forward-path gains of the system
-	std::array<float, 4> dc_gains = {
-			sampler.get_gain(), //ADC gain (current to ADC output)
-			/*<CONTROLLER GOES HERE> (current to power stage counts)*/
-			stage.get_gain(),  //power stage gain (counts to duty)
-			12.0, //input voltage (duty to Vout); TODO actually reading the input voltage
-			1 / params.POWER_STAGE_CONFIGS[index].LOAD_RESISTANCE //coil DC conductance (Vout to current)
-	};
-
-	//and compute the gain trim given the real forward path gain of the system now
-	comp.compute_gain_trim(params.POWER_STAGE_CONFIGS[index].K_DC, dc_gains);
-}
-
 //###### ENABLE CONTROL ######
 
 bool Regulator::get_enabled() {
@@ -171,6 +153,8 @@ bool Regulator::get_enabled() {
 }
 
 void Regulator::enable() {
+	//TODO: POTENTIALLY RECOMPUTE THE REGULATOR GAINS GIVEN THE DC VOLTAGE AT THIS POINT IN TIME
+
 	enabled = true;
 	sampler.enable_callback(); //get the sampler going
 	setpoint.enable(); //get the setpoint controller going

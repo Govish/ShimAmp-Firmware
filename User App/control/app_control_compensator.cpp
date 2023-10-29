@@ -108,6 +108,7 @@ Compensator::Biquad_Params Compensator::make_gains(	float desired_dc_gain, float
 //================================ INSTANCE METHODS =============================
 
 //just need to implement compute override
+//NOTE: I got rid of gain trim in order to speed up the computations
 float Compensator::compute(float input) {
 	//create a local output variable, initialized with just a gain from forward path
 	//then perform the recursive filtering (single pole and zero mean just need the z^-1 terms)
@@ -119,28 +120,8 @@ float Compensator::compute(float input) {
 	xm1 = input;
 	ym1 = output;
 
-	//adjust the output scaling by the appropriate trim constant
-	//do this after the IIR filter in order to avoid complexity associated with rescaling memory values
-	float trim_output = output * gain_trim;
-
 	//pop out the computed compensator output
-	return trim_output;
+	return output;
 }
 
 
-//and implement computing gain trim
-void Compensator::compute_gain_trim(float desired_dc_loop_gain,
-									std::span<float, std::dynamic_extent> other_loop_gains)
-{
-	//have a running product of the forward path gain
-	float total_loop_gain = dc_gain; //initialize to control gain
-
-	//take the product of all the gains in our forward path
-	for(float gain : other_loop_gains) {
-		total_loop_gain *= gain;
-	}
-
-	//based on our desired forward path gain and our actual gain, adjust gain trim
-	//NOTE: this write should be atomic, i.e. can do this even when `compute` is running in interrupt context
-	gain_trim = desired_dc_loop_gain / total_loop_gain;
-}

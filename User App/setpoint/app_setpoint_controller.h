@@ -3,6 +3,10 @@
  *
  *  Created on: Oct 21, 2023
  *      Author: Ishaan
+ *
+ *
+ *  Note: Getting rid of the reconstruction Bessel filter--adds too much computational overhead to be in the ISR
+ *  Also, step response seems to be well-behaved enough such that it may not be necessary
  */
 
 #ifndef SETPOINT_APP_SETPOINT_CONTROLLER_H_
@@ -11,7 +15,6 @@
 //library includes
 #include <math.h>
 
-#include "app_control_biquad.h" //to maintain a second-order "bessel" filter
 #include "app_config.h" //access the configuration structure
 #include "app_power_stage_sampler.h" //read the active sampling rate
 
@@ -41,11 +44,10 @@ public:
 	/*
 	 * Call this function when the controller rate changes
 	 * This will recompute the rate of the active waveform along with
-	 * 		recomputing the digital filter coefficients using the active sampling frequency loaded from the sampler
 	 * Only valid to call when the sampler is disabled
 	 * Returns true if resetting the rate was possible
 	 */
-	bool recompute_rate(float _bl_corner_freq);
+	bool recompute_rate();
 
 	/*
 	 * Get the next band-limited setpoint value for the controller
@@ -65,11 +67,8 @@ private:
 	void __attribute__((optimize("O3"))) trigger_deassert(); //called by an EXTI falling edge
 
 	//=========================== STATIC/INSTANCE VARIABLES =====================
-	static constexpr float BESSEL_Q = 1/sqrt(3); //quality factor of a 2nd-order bessel filter
-
 	//TODO: implement a trigger and tick function hooked up to EXTIs and Timer Interrupts
 	Configuration::Configuration_Params& params; //access the active configuration structure
-	Biquad bl_filter;
 	Waveform* active_waveform; //waveform that's currently running
 	Waveform* trigger_asserted_waveform; //waveform to output after trigger asserted
 	Waveform* trigger_deasserted_waveform; //waveform to output after trigger deasserted

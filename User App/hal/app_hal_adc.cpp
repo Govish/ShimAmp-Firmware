@@ -59,7 +59,7 @@ Triggered_ADC::Triggered_ADC(Triggered_ADC_Hardware_Channel& _hardware):
  *  - initializes hardware through HAL functions
  *  - configures the channel in single-ended or differential mode accordingly
  *  - calibrates the particular ADC channel
- *  - configures the particular ADC channel in BULB sampling mode
+ *  - configures the particular ADC channel to have a 12.5 cycle sampling window
  *  - Enables the ADC operation in triggered + interrupt mode
  *
  *  NOTE: Normal operation of triggered ADCs is sampling in bulb mode with conversion triggered by HRTIM period
@@ -82,10 +82,12 @@ void Triggered_ADC::init() {
 	else
 		HAL_ADCEx_Calibration_Start(hardware.hadc, ADC_DIFFERENTIAL_ENDED);
 
-	//configure the channel in bulb sampling mode
-	//sampling period starts right after the previous conversion finishes
-	//ensures the longest possible time to charge sampling capacitor
-	//and conversion right on the trigger event
+	//NOTE: THE ORIGINAL PLAN FOR THIS WAS TO PUT THE CONVERTERS IN BULB MODE
+	//However, I ran into some spooky issues where I'd get weird ADC behavior near the zero crossing
+	//which wouldn't happen if I sampled with a normal pre-determined sample time
+	//as such, I'll just stick to a fixed 12.5-cycle acquisition time
+	//	\--> longer acq. times, though theoretically possible, also had weird ADC errors
+	hardware.hadc->Instance->SMPR1 = ADC_SAMPLETIME_12CYCLES_5; //only sampling one channel, so this is all we need to do
 	//hardware.hadc->Instance->CFGR2 |= ADC_CFGR2_BULB_Msk;
 
 	//disable interrupts by default
@@ -153,11 +155,6 @@ uint16_t Triggered_ADC::get_val() {
 std::pair<float, float> Triggered_ADC::get_gain_offset() {
 	//just return the internally maintained gain and offset values
 	return std::make_pair(gain_v_to_counts * gain_trim, offset_counts + offset_trim);
-}
-
-float Triggered_ADC::get_adc_max_code() {
-	//just return our maximum ADC CODE
-	return ADC_MAX_CODE;
 }
 
 //======================================= PROCESSOR ISRs ====================================

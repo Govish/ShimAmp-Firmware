@@ -80,7 +80,7 @@ void app_init() {
 
 void debug_func() {
 	static auto& setpoint = power_stage_sys.get_setpoint_instance();
-	static float reg_current = 0.01f;
+	static float reg_current = 0.1f;
 	static uint32_t tick_2 = Timer::get_ms();
 	static uint32_t TICKRATE_2 = 1;
 

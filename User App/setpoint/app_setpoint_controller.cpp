@@ -25,9 +25,6 @@ Setpoint::Setpoint(Configuration::Configuration_Params& _params, const size_t _i
 //============= PUBLIC METHODS ===========
 
 void Setpoint::init() {
-	//initialize the reconstruction filter with the appropriate constants
-	recompute_rate(params.POWER_STAGE_CONFIGS[index].SETPOINT_RECON_BANDWIDTH);
-
 	//TODO: initialize trigger and tick hardware
 }
 
@@ -45,8 +42,6 @@ void Setpoint::disable() {
 	trigger_asserted_waveform = &zero_drive;
 	trigger_deasserted_waveform = &zero_drive;
 
-	//reset the band-limiting filter
-	bl_filter.reset();
 	enabled = false; //clear the enabled flag
 }
 
@@ -54,37 +49,22 @@ bool Setpoint::get_enabled() {
 	return enabled;
 }
 
-//####### CONTROLLER RATE RECOMPUTATION #######
-bool Setpoint::recompute_rate(float _bl_corner_freq) {
-	//forbid this operation if we're enabled
-	if(enabled) return false;
-
-	//recompute biquad filter constants based on the new sample rate
-	Biquad::Biquad_Params bl_filter_params = bl_filter.make_lowpass(_bl_corner_freq,
-																	BESSEL_Q,
-																	Sampler::GET_SAMPLING_FREQUENCY());
-	//check if filter creation failed
-	if(!bl_filter_params.is_nonzero()) return false;
-
-	//everything went right; update the filter and the global configuration as necessary
-	bl_filter.update_params(bl_filter_params);
-	params.POWER_STAGE_CONFIGS[index].SETPOINT_RECON_BANDWIDTH = _bl_corner_freq;
-
-	return true;
-}
-
 //###### SETPOINT SERVICE FUNCTION ######
 float Setpoint::next() {
+	/*
+	 * NOTE: I'm removing the band-limiting Bessel filter here
+	 * 	It kinda adds a lotta extra computation for not too much benefit
+	 * 	Step response seemed reasonably well-behaved without it
+	 */
+
 	//grab the next value from the active waveform
-	float next_wave = active_waveform->next();
+	return active_waveform->next();
+}
 
-	//run it through our filter
-	float filt_next_wave = bl_filter.compute(next_wave);
-
-	//and return that filtered value
-	//TODO: FIX BESSEL FILTER MAYBE
-	//return filt_next_wave;
-	return next_wave;
+//###### RATE RECOMPUTATION #######
+bool Setpoint::recompute_rate() {
+	//as of now, nothing needs recomputation here
+	return true;
 }
 
 //=========================== WAVEFORM INSTANTIATIONS ==========================

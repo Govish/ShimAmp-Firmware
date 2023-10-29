@@ -5,8 +5,9 @@
  *      Author: Ishaan
  *
  *  The compensator class will have some computational optimizations that stem from just a single pole/zero pair
- *  It will also have a utility function that tweaks the effective instantaneous gain of the compensator due to variations
- *  DC gains in the forward/feedback paths
+ *  NOTE: I got rid of the DC gain trim since across 9-16V operating range, the step response dynamics don't change much (just a bit of overshoot/settling time
+ *  	\--> I'm thinking I'll still read in the DC supply voltage when recomputing controller gains
+ *  	\--> May do this on every single DISABLE --> ENABLE transition actually, we'll see
  */
 
 #ifndef CONTROL_APP_CONTROL_COMPENSATOR_H_
@@ -33,6 +34,7 @@ public:
 	//calculates a 'nominal' actuator command based off setpoint dynamics; controller servos around this command
 	//compensates for system forward path gains and load dynamics by placing a zero at the load's pole frequency
 	//places a pole near nyquist in order to keep the feed-forward system causal
+	//TODO: IMPLEMENT
 	static Biquad_Params make_gains(std::span<float, std::dynamic_extent> system_gains, float load_zero, float fs);
 
 	//============================== INSTANCE FUNCTIONS ==========================
@@ -47,17 +49,7 @@ public:
 	//can also allow for gain post-scaling (to compensate for DC gain variations
 	float __attribute__((optimize("O3"))) compute(float input) override;
 
-	//use this function to correct for slight deviations between expected and actual DC gains of the system (e.g. input voltage changing, coil DC resistance)
-	//the first parameter indicates the desired dc loop gain of our entire forward path
-	//the second parameter is a list of all the individual DC gains of elements of the forward path (e.g. HRPWM, POWER
-	//e.g. for our case, `other_loop_gains` =
-	//		{ ADC_gain (1 since real units), power_stage_counts2duty (~1/3000), duty2vout (~12, Vin), vout2current (coil DC conductance, 10 for 100mR)}
-	//will compute a gain_trim to the compensator such that the DC gain of the entire forward path (incl. compensator gain) matches desired dc loop gain
-	void compute_gain_trim(	float desired_dc_loop_gain,
-							std::span<float, std::dynamic_extent> other_loop_gains);
-
 private:
-	float gain_trim = 1;
 };
 
 
