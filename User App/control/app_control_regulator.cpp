@@ -187,7 +187,7 @@ void Regulator::disable() {
 
 //====================================== PRIVATE METHODS ====================================
 void Regulator::regulate_forwarder(void* context) {
-	reinterpret_cast<Regulator*>(context)->regulate();
+	static_cast<Regulator*>(context)->regulate();
 }
 
 //avoid enable sanity checking to reduce overhead

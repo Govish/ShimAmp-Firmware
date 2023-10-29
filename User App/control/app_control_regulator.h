@@ -60,7 +60,7 @@ public:
 private:
 	//================= MAIN REGULATION FUNCTION; CALLED BY SAMPLER ==================
 	static void __attribute__((optimize("O3"))) regulate_forwarder(void* context);
-	void __attribute__((optimize("O3"))) regulate();
+	void /*__attribute__((optimize("O3")))*/ regulate();
 
 	//============================ MEMBER CLASS REFERENCES AND INSTANCES ============================
 	Power_Stage& stage; //maintain a reference to a power stage

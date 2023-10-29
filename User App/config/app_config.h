@@ -35,13 +35,13 @@ public:
 		//current sensing hardware configuration and ADC trim values
 		float SHUNT_RESISTANCE; //current shunt resistance value in ohms
 		float FINE_AMP_GAIN_VpV; //gain of the fine range current sense amplifier (Volts/Volt)
-		float FINE_GAIN_TRIM;
-		float FINE_OFFSET_TRIM;
+		float FINE_GAIN_TRIM; //unitless ratio
+		float FINE_OFFSET_TRIM; //in units of current (A)
 		uint16_t FINE_RANGE_VALID_LOW; //minimum possible code for which the fine range is reliable (EXCLUSIVE)
 		uint16_t FINE_RANGE_VALID_HIGH; //maximum possible code for which the fine range is reliable (EXCLUSIVE)
 		float COARSE_AMP_GAIN_VpV; //gain of the coarse range current sense amplifier (Volts/Volt)
-		float COARSE_GAIN_TRIM;
-		float COARSE_OFFSET_TRIM;
+		float COARSE_GAIN_TRIM; //unitless ratio
+		float COARSE_OFFSET_TRIM; //in units of current (A)
 
 		//specific controller parameters
 		float K_DC; //controller DC gain, linear scale

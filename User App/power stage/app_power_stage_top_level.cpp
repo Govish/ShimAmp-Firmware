@@ -199,13 +199,10 @@ bool Power_Stage_Subsystem::set_mode(Stage_Mode mode) {
 			//we can only go to ENABLED from DISABLED and nothing else
 			if(operating_mode != Stage_Mode::DISABLED) return false;
 
-			//ensure power stage is locked out to external writes
-			stage_wrapper.IS_LOCKED_OUT = true;
-
-			//just need to enable the regulator, this should take care of everything in automatic mode
-			regulator.enable();
-
-			return true;
+			stage_wrapper.IS_LOCKED_OUT = true; //ensure power stage is locked out to external writes
+			stage.enable(); //enable the power stage
+			regulator.enable(); //and enable the regulator--all the additional enables get taken care of here
+			operating_mode = Stage_Mode::ENABLED_AUTO; //and update our stage mode
 			break;
 
 		case Stage_Mode::ENABLED_AUTOTUNING: //====================== AUTOTUNE THIS PARTICULAR POWER STAGE CHANNEL ======================

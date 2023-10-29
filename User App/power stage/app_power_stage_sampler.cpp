@@ -53,8 +53,8 @@ float Sampler::get_current_reading() {
 
 	//read the current range
 	//read the fine range is within appropriate limits, use that as our measurement
-	if_read = curr_fine.get_val();
-	if(if_read < if_max && if_read > if_min) {
+	//if_read = curr_fine.get_val();
+	if(false){//if_read < if_max && if_read > if_min) {
 		iread = ((float)if_read - fine_offset_counts) / fine_total_gain; //scale current reading by appropriate scaling factor, and apply zero offset
 	}
 
@@ -98,8 +98,8 @@ void Sampler::attach_sample_cb(Context_Callback_Function<> cb) {
 void Sampler::enable_callback() {
 	//disable just the COARSE ADC callback, and enable the fine callback;
 	//since `fine` channel will be read first
-	curr_coarse.disable_interrupt();
-	curr_fine.enable_interrupt();
+	curr_coarse.enable_interrupt();
+	curr_fine.disable_interrupt();
 
 	//assert a flag
 	callback_enable = true;
@@ -145,7 +145,8 @@ bool Sampler::trim_coarse(float gain_trim, float offset_trim) {
 	//compute the coarse channel overall gain and offset
 	//such that we get +/- current after applying (`ADC_counts` - offset) / gain
 	auto [adc_gain, adc_offset] = curr_coarse.get_gain_offset();
-	coarse_offset_counts = adc_offset; //offset is chill
+	coarse_offset_counts = adc_offset +
+						curr_coarse.get_adc_max_code()/2; //offset by half of the ADC range
 	coarse_total_gain = adc_gain * //V_ADC to counts
 						config.POWER_STAGE_CONFIGS[index].COARSE_AMP_GAIN_VpV * //V_shunt to V_ADC
 						config.POWER_STAGE_CONFIGS[index].SHUNT_RESISTANCE; //I_shunt to V_shunt
@@ -168,7 +169,8 @@ bool Sampler::trim_fine(float gain_trim, float offset_trim) {
 	//compute the coarse channel overall gain and offset
 	//such that we get +/- current after applying (`ADC_counts` - offset) / gain
 	auto [adc_gain, adc_offset] = curr_fine.get_gain_offset();
-	fine_offset_counts = adc_offset; //offset is chill
+	fine_offset_counts = adc_offset +
+						curr_fine.get_adc_max_code() / 2.0f; //offset by half of the ADC range
 	fine_total_gain = adc_gain * //V_ADC to counts
 						config.POWER_STAGE_CONFIGS[index].FINE_AMP_GAIN_VpV * //V_shunt to V_ADC
 						config.POWER_STAGE_CONFIGS[index].SHUNT_RESISTANCE; //I_shunt to V_shunt

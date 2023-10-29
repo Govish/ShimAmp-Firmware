@@ -73,18 +73,32 @@ uint16_t HRPWM::GET_PERIOD() {
 	return (uint16_t)(0xFFFF & hrtim_handle->Instance->sMasterRegs.MPER);
 }
 
-//triggered ADCs are configured to run off of ADC_TRIGGER_1
+/*
+ * triggered ADCs are configured to run off of HRTIM ADC_TRIGGER_1
+ * 	--> this triggers TWICE PER CYCLE, once at the period event, once at halfway
+ * 	--> Combined with a 2x oversampling, this means we can cancel out any switching noise during ADC conversions!
+ * HOWEVER, FOR THIS TO WORK, we need to ensure we sample our ADC at an ODD RATIO OF THE HRTIM TRIGGER!
+ * 	--> this ensures we get one "crest" and one "trough"
+ * Use the following algorithm to compute the nearest odd number to a floating point number
+ * 		\--> https://www.mathworks.com/matlabcentral/answers/45932-round-to-nearest-odd-integer#answer_56150
+ */
 //expect a decent amount of rounding error here
 //application can get the actual ADC trigger frequency from the getter function (useful for controller)
-//these values can be updated even when timer is ticking
 bool HRPWM::SET_ADC_TRIGGER_FREQUENCY(float ftrig_hz) {
 	if(GET_ALL_ENABLED()) return false; //don't adjust the period of the trigger if timers are enabled
 
+	//compute the HRTIM ADC1 trigger frequency
+	//HRTIM triggers ADC twice per switching cycle
+	//HOWEVER, the ADC is running 2x oversampling, so these factors of two cancel out
+	float hrtim_trig_freq = GET_FSW();
+
 	//bounds check the desired trigger frequency
-	if(ftrig_hz > GET_FSW() || (ftrig_hz * (ADC_POSTSCALER_MASK + 1)) < GET_FSW()) return false;
+	if(ftrig_hz > hrtim_trig_freq || (ftrig_hz * (ADC_POSTSCALER_MASK + 1)) < hrtim_trig_freq) return false;
 
 	//compute the dividing factor between the switching frequency and the ADC trigger frequency
-	uint8_t adc_multiple = std::round(GET_FSW() / ftrig_hz);
+	//ensure that the divisor factor is ODD to ensure harmonic cancelling waveform sampling
+	//see MATLAB forum post for formula inspiration
+	uint8_t adc_multiple = 2.0f*std::floor(hrtim_trig_freq / (2.0f * ftrig_hz)) + 1;
 
 	//write the dividing factor to the ADC trigger postscaler bits (subtract 1 to get register value)
 	hrtim_handle->Instance->sCommonRegs.ADCPS1 = (adc_multiple - 1) &  ADC_POSTSCALER_MASK;
@@ -93,8 +107,14 @@ bool HRPWM::SET_ADC_TRIGGER_FREQUENCY(float ftrig_hz) {
 
 //based on the post-scaler value, figure out what frequency the ADC is getting triggered at
 float HRPWM::GET_ADC_TRIGGER_FREQUENCY() {
+	//compute the HRTIM ADC1 trigger frequency
+	//HRTIM triggers ADC twice per switching cycle
+	//but the ADC runs 2x oversampling, so they cancel out
+	float hrtim_trig_freq = GET_FSW();
+
+	//get the dividing ratio from the ADC postscaler register
 	uint32_t dividing_ratio = (hrtim_handle->Instance->sCommonRegs.ADCPS1 & ADC_POSTSCALER_MASK) + 1;
-	return GET_FSW() / (float)dividing_ratio;
+	return hrtim_trig_freq / (float)dividing_ratio;
 }
 
 //=========================================== INSTANCE METHODS =========================================

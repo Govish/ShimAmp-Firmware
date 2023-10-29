@@ -66,16 +66,74 @@ void app_init() {
 	db.init(); //initialize debug UART
 }
 
-void debug_func() {
-	static auto& sampler = power_stage_sys.get_sampler_instance();
-	static uint32_t tick = Timer::get_ms();
+//void debug_func() {
+//	static auto& sampler = power_stage_sys.get_sampler_instance();
+//	static uint32_t tick = Timer::get_ms();
+//	static uint32_t TICKRATE = 1;
+//
+//	if(Timer::get_ms() - tick > TICKRATE) {
+//		std::string text = std::to_string(sampler.read_fine_raw()) + std::string("\t\t") + std::to_string(sampler.read_coarse_raw()) + std::string("\r\n");
+//		db.print(text);
+//		tick += TICKRATE;
+//	}
+//}
 
-	if(Timer::get_ms() - tick > 1) {
-		std::string text = std::to_string(sampler.read_fine_raw()) + std::string("\t\t") + std::to_string(sampler.read_coarse_raw()) + std::string("\r\n");
-		db.print(text);
-		tick += 10;
+void debug_func() {
+	static auto& setpoint = power_stage_sys.get_setpoint_instance();
+	static float reg_current = 0.01f;
+	static uint32_t tick_2 = Timer::get_ms();
+	static uint32_t TICKRATE_2 = 1;
+
+	if(Timer::get_ms() - tick_2 > TICKRATE_2) {
+		setpoint.make_setpoint_dc(false, reg_current);
+		reg_current *= -1;
+		tick_2 += TICKRATE_2;
 	}
+
 }
+
+//void debug_func() {
+//	static auto& sampler = power_stage_sys.get_sampler_instance();
+//	static auto& setpoint = power_stage_sys.get_setpoint_instance();
+//	static float reg_current = 1.0f;
+//	static uint32_t tick = Timer::get_ms();
+//	static uint32_t tick_2 = Timer::get_ms();
+//	static uint32_t TICKRATE = 1;
+//	static uint32_t TICKRATE_2 = 2;
+//
+
+//
+//	if(Timer::get_ms() - tick_2 > TICKRATE_2) {
+//		setpoint.make_setpoint_dc(false, reg_current);
+//		reg_current *= -1;
+//		tick_2 += TICKRATE_2;
+//	}
+//
+//}
+
+//void debug_func() {
+//	static auto& sampler = power_stage_sys.get_sampler_instance();
+//	static auto& stage = power_stage_sys.get_direct_stage_control_instance();
+//	power_stage_sys.set_mode(Power_Stage_Subsystem::Stage_Mode::ENABLED_MANUAL);
+//
+//	for(float drive = -0.3; drive < 0.3; drive+=0.001) {
+//		for(int i = 0; i < 10; i++) {
+//			stage.set_drive(drive);
+//			std::string text = f2s<4>(sampler.get_current_reading()) + std::string("\r\n");
+//			db.print(text);
+//			Timer::delay_ms(1);
+//		}
+//	}
+//
+//	for(float drive = 0.3; drive > -0.3; drive-=0.001) {
+//		for(int i = 0; i < 10; i++) {
+//			stage.set_drive(drive);
+//			std::string text = f2s<4>(sampler.get_current_reading()) + std::string("\r\n");
+//			db.print(text);
+//			Timer::delay_ms(1);
+//		}
+//	}
+//}
 
 void app_loop() {
 	//handle the communication + command/request execution

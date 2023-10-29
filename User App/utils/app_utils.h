@@ -208,6 +208,10 @@ template<size_t precision> //how many decimal points to print
 inline std::string f2s(float val) {
 	constexpr float scaling = std::pow(10.0, (float)precision);
 
+	//convert to exclusively positive numbers, prepend a "-" as necessary
+	std::string sign_string = val < 0 ? "-" : "";
+	val = std::abs(val);
+
 	float integer_part; //modf requires a float argument for the integer part
 	float decimal = std::modf(val, &integer_part); //separate the float into its decimal and integer part
 
@@ -216,7 +220,7 @@ inline std::string f2s(float val) {
 	std::string padded_decimal_string = std::string(precision - std::min(precision, decimal_string.length()), '0') + decimal_string;
 
 	//concatenate integer and decimal parts of the string and return
-	return std::to_string((long)integer_part) + "." + padded_decimal_string;
+	return sign_string + std::to_string((long)integer_part) + "." + padded_decimal_string;
 }
 
 #endif /* UTILS_APP_UTILS_H_ */

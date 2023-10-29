@@ -120,7 +120,7 @@ float Compensator::compute(float input) {
 	ym1 = output;
 
 	//adjust the output scaling by the appropriate trim constant
-	//do this after the IIR filter in order to avoid cmplexity associated with rescaling memory values
+	//do this after the IIR filter in order to avoid complexity associated with rescaling memory values
 	float trim_output = output * gain_trim;
 
 	//pop out the computed compensator output

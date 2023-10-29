@@ -34,6 +34,7 @@ void Setpoint::init() {
 //###### ENABLE CONTROL ######
 void Setpoint::enable() {
 	if(enabled) return;
+	enabled = true; //set the enabled flag
 }
 
 void Setpoint::disable() {
@@ -46,6 +47,7 @@ void Setpoint::disable() {
 
 	//reset the band-limiting filter
 	bl_filter.reset();
+	enabled = false; //clear the enabled flag
 }
 
 bool Setpoint::get_enabled() {
@@ -80,7 +82,9 @@ float Setpoint::next() {
 	float filt_next_wave = bl_filter.compute(next_wave);
 
 	//and return that filtered value
-	return filt_next_wave;
+	//TODO: FIX BESSEL FILTER MAYBE
+	//return filt_next_wave;
+	return next_wave;
 }
 
 //=========================== WAVEFORM INSTANTIATIONS ==========================

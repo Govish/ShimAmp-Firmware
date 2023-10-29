@@ -42,14 +42,14 @@ Triggered_ADC::Triggered_ADC(Triggered_ADC_Hardware_Channel& _hardware):
 {
 	//for single-ended operation, treat 0 as 0V, and map the max value to VREF on the input
 	if(hardware.in_mode == Input_Mode::SINGLE_ENDED) {
-		gain_v_to_counts = ADC_REFERENCE_VOLTAGE / ADC_MAX_CODE;
+		gain_v_to_counts =  (ADC_MAX_CODE+1) / ADC_REFERENCE_VOLTAGE;
 		offset_counts = 0;
 	}
 
 	//for differential-mode operation, treat somewhere around the middle as zero, and each LSB represents double the voltage
 	else {
-		gain_v_to_counts = 2*ADC_REFERENCE_VOLTAGE / ADC_MAX_CODE;
-		offset_counts = (ADC_MAX_CODE / 2) + 8; //zero is slightly above the middle value
+		gain_v_to_counts =  (ADC_MAX_CODE+1) / (2*ADC_REFERENCE_VOLTAGE);
+		offset_counts = (ADC_MAX_CODE / 2); //zero is slightly above the middle value
 	}
 }
 
@@ -86,7 +86,7 @@ void Triggered_ADC::init() {
 	//sampling period starts right after the previous conversion finishes
 	//ensures the longest possible time to charge sampling capacitor
 	//and conversion right on the trigger event
-	hardware.hadc->Instance->CFGR2 |= ADC_CFGR2_BULB_Msk;
+	//hardware.hadc->Instance->CFGR2 |= ADC_CFGR2_BULB_Msk;
 
 	//disable interrupts by default
 	disable_interrupt();
@@ -125,7 +125,7 @@ void Triggered_ADC::attach_cb(Context_Callback_Function<> cb) {
 //enable the conversion complete interrupt
 void Triggered_ADC::enable_interrupt() {
 	hardware.hadc->Instance->ISR = Triggered_ADC::CLEAR_ALL_INTERRUPTS; //clear any pending interrupts prior to enable
-	hardware.hadc->Instance->IER = ADC_IER_EOCIE_Msk; //only want the end of regular conversion interrupt
+	hardware.hadc->Instance->IER = ADC_IER_EOSIE_Msk; //interrupt at end of sequence conversion
 	//NVIC gets initialized in the init func; don't have to worry about that here
 
 	//set the interrupt enabled flag in the hardware struct
@@ -155,6 +155,10 @@ std::pair<float, float> Triggered_ADC::get_gain_offset() {
 	return std::make_pair(gain_v_to_counts * gain_trim, offset_counts + offset_trim);
 }
 
+float Triggered_ADC::get_adc_max_code() {
+	//just return our maximum ADC CODE
+	return ADC_MAX_CODE;
+}
 
 //======================================= PROCESSOR ISRs ====================================
 

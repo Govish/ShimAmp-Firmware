@@ -17,11 +17,11 @@ static const Configuration::Power_Stage_Channel_Config DEFAULT_CONFIG_PS_CHANNEL
 		.FINE_AMP_GAIN_VpV = 100, //INA241x4
 		.FINE_GAIN_TRIM = 1,
 		.FINE_OFFSET_TRIM = 0,
-		.FINE_RANGE_VALID_LOW = 0x0000,
-		.FINE_RANGE_VALID_HIGH = 0xFFFF,
+		.FINE_RANGE_VALID_LOW = 2048 - 1500,
+		.FINE_RANGE_VALID_HIGH = 2048 + 1500,
 		.COARSE_AMP_GAIN_VpV = 10, //INA241x1
 		.COARSE_GAIN_TRIM = 1,
-		.COARSE_OFFSET_TRIM = 0,
+		.COARSE_OFFSET_TRIM = -10, //TODO CONVERT TO AMPS
 
 		//controller parameters
 		.K_DC = 1000.0, //controller DC gain ~1000
@@ -30,7 +30,7 @@ static const Configuration::Power_Stage_Channel_Config DEFAULT_CONFIG_PS_CHANNEL
 
 		//parameters for the shim coil load
 		.LOAD_RESISTANCE = 200e-3, //default to 100mR load
-		.LOAD_CHARACTERISTIC_FREQ = 50000, //mostly resistive load
+		.LOAD_CHARACTERISTIC_FREQ = 20000, //mostly resistive load
 };
 
 const Configuration::Configuration_Params Configuration::DEFAULT_CONFIG = {
@@ -44,7 +44,7 @@ const Configuration::Configuration_Params Configuration::DEFAULT_CONFIG = {
 
 		//global power stage parameters
 		.DESIRED_SWITCHING_FREQUENCY = 1.42857142e6, //start with a 1.42857MHz switching frequency (10MHz/7)
-		.DESIRED_SAMPLING_FREQUENCY = 250e3, //and a 250kHz current sampling frequency
+		.DESIRED_SAMPLING_FREQUENCY = 150e3, //and a 250kHz current sampling frequency
 		.DESIRED_SETPOINT_TICK_FREQUENCY = 40e3, //arbitrary waveforms were sampled at this rate
 
 		//power stage configuration parameters
