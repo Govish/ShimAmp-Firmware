@@ -79,28 +79,50 @@ void app_init() {
 //	}
 //}
 
-/*REGULATE A SQUARE WAVE*/
+/*PRINT MEASURED CURRENT VALUES WITH NO DRIVE*/
 //void debug_func() {
-//	static auto& setpoint = power_stage_sys.get_setpoint_instance();
-//	static float reg_current = 0.75f;
-//	static uint32_t tick_2 = Timer::get_ms();
-//	static uint32_t TICKRATE_2 = 2;
+//	static auto& sampler = power_stage_sys.get_sampler_instance();
+//	static uint32_t tick = Timer::get_ms();
+//	static uint32_t TICKRATE = 1;
 //
-//	if(Timer::get_ms() - tick_2 > TICKRATE_2) {
-//		setpoint.make_setpoint_dc(false, reg_current);
-//		reg_current *= -1;
-//		tick_2 += TICKRATE_2;
+//	if(Timer::get_ms() - tick > TICKRATE) {
+//		std::string text = f2s<4>(sampler.get_current_reading()) + std::string("\r\n");
+//		db.print(text);
+//		tick += TICKRATE;
 //	}
-//
 //}
 
-/*DRIVE THE POWER STAGE WITH A SQUARE WAVE, OPEN LOOP*/
+/*REGULATE A SQUARE WAVE*/
+void debug_func() {
+	static auto& setpoint = power_stage_sys.get_setpoint_instance();
+	static float reg_current = 2.0f;
+	static uint32_t tick_2 = Timer::get_ms();
+	static uint32_t TICKRATE_2 = 2;
+
+	if(Timer::get_ms() - tick_2 > TICKRATE_2) {
+		setpoint.make_setpoint_dc(false, reg_current);
+		reg_current *= -1;
+		tick_2 += TICKRATE_2;
+	}
+
+}
+
+/*DRIVE THE POWER STAGE WITH A SQUARE WAVE, OPEN LOOP; print current readings*/
 //void debug_func() {
 //	static auto& stage = power_stage_sys.get_direct_stage_control_instance();
+//	static auto& sampler = power_stage_sys.get_sampler_instance();
 //	power_stage_sys.set_mode(Power_Stage_Subsystem::Stage_Mode::ENABLED_MANUAL);
 //	static float drive = 0.05f;
+//	static uint32_t tick = Timer::get_ms();
 //	static uint32_t tick_2 = Timer::get_ms();
 //	static uint32_t TICKRATE_2 = 50;
+//	static uint32_t TICKRATE = 1;
+//
+//	if(Timer::get_ms() - tick > TICKRATE) {
+//		std::string text = f2s<4>(sampler.get_current_reading()) + std::string("\r\n");
+//		db.print(text);
+//		tick += TICKRATE;
+//	}
 //
 //	if(Timer::get_ms() - tick_2 > TICKRATE_2) {
 //		stage.set_drive(drive);
@@ -136,29 +158,29 @@ void app_init() {
 //}
 
 /*DRIVE THE STAGE WITH A TRIANGULAR RAMP, PRINT THE RAW ADC VALUES*/
-void debug_func() {
-	static auto& sampler = power_stage_sys.get_sampler_instance();
-	static auto& stage = power_stage_sys.get_direct_stage_control_instance();
-	power_stage_sys.set_mode(Power_Stage_Subsystem::Stage_Mode::ENABLED_MANUAL);
-
-	for(float drive = -0.3; drive < 0.3; drive+=0.001) {
-		for(int i = 0; i < 1; i++) {
-			stage.set_drive(drive);
-			std::string text = std::to_string(sampler.read_fine_raw()) + std::string("\t\t") + std::to_string(sampler.read_coarse_raw()) + std::string("\r\n");
-			db.print(text);
-			Timer::delay_ms(1);
-		}
-	}
-
-	for(float drive = 0.3; drive > -0.3; drive-=0.001) {
-		for(int i = 0; i < 1; i++) {
-			stage.set_drive(drive);
-			std::string text = std::to_string(sampler.read_fine_raw()) + std::string("\t\t") + std::to_string(sampler.read_coarse_raw()) + std::string("\r\n");
-			db.print(text);
-			Timer::delay_ms(1);
-		}
-	}
-}
+//void debug_func() {
+//	static auto& sampler = power_stage_sys.get_sampler_instance();
+//	static auto& stage = power_stage_sys.get_direct_stage_control_instance();
+//	power_stage_sys.set_mode(Power_Stage_Subsystem::Stage_Mode::ENABLED_MANUAL);
+//
+//	for(float drive = -0.3; drive < 0.3; drive+=0.001) {
+//		for(int i = 0; i < 1; i++) {
+//			stage.set_drive(drive);
+//			std::string text = std::to_string(sampler.read_fine_raw()) + std::string("\t\t") + std::to_string(sampler.read_coarse_raw()) + std::string("\r\n");
+//			db.print(text);
+//			Timer::delay_ms(1);
+//		}
+//	}
+//
+//	for(float drive = 0.3; drive > -0.3; drive-=0.001) {
+//		for(int i = 0; i < 1; i++) {
+//			stage.set_drive(drive);
+//			std::string text = std::to_string(sampler.read_fine_raw()) + std::string("\t\t") + std::to_string(sampler.read_coarse_raw()) + std::string("\r\n");
+//			db.print(text);
+//			Timer::delay_ms(1);
+//		}
+//	}
+//}
 
 void app_loop() {
 	//handle the communication + command/request execution

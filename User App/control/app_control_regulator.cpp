@@ -66,7 +66,7 @@ bool Regulator::recompute_rate(	float desired_dc_gain,
 		);
 	else
 		//make a compensator with a single pole and a pole-cancelling zero such that we cross over at specified f_c given the DC gain
-		comp_params = comp.make_gains(
+		comp_params = comp.make_gains_dumb(
 				desired_dc_gain, desired_crossover_freq, load_natural_freq, //desired gain+bandwidth + zero frequency
 				dc_gains, //DC gains of the rest of the forward path
 				sampler.GET_SAMPLING_FREQUENCY() //pull the actual controller sampling frequency

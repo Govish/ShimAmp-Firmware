@@ -93,7 +93,7 @@ private:
 	//================== ADC CONVERSION CONSTANTS ===============
 
 	//conversion factor between ADC values and voltages
-	static constexpr float ADC_REFERENCE_VOLTAGE = 2.048;
+	static constexpr float ADC_REFERENCE_VOLTAGE = 3.3;
 	static constexpr float ADC_MAX_CODE = (float)0x0FFF; //left aligned data, 12 bits extended to 16 bits
 
 	//================== MEMBER VARIABLES ===============

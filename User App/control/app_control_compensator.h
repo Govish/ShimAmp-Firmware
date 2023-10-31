@@ -23,6 +23,11 @@ public:
 	//============================= FUNCTIONS TO CREATE COMPENSATOR PARAMETERS ============================
 
 	//build controller constants based off of some plant parameters and desired dynamics (with a pole and zero)
+	//but in a dumb way (i.e. just place a single gain in the forward path)
+	static Biquad_Params make_gains_dumb(	float desired_dc_gain, float f_crossover, float f_zero,
+											std::span<float, std::dynamic_extent> other_loop_gains, float fs);
+
+	//build controller constants based off of some plant parameters and desired dynamics (with a pole and zero)
 	static Biquad_Params make_gains(float desired_dc_gain, float f_crossover, float f_zero,
 									std::span<float, std::dynamic_extent> other_loop_gains, float fs);
 

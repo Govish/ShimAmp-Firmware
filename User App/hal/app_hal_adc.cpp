@@ -16,13 +16,13 @@
 
 ///========================= initialization of static fields ========================
 //ADC instance will be initialized in the constructor, so don't need to worry too much about the NULL here
-Triggered_ADC::Triggered_ADC_Hardware_Channel Triggered_ADC::CHANNEL_3 = {
-		.hadc = &hadc3,
-		.init_func = Callback_Function(MX_ADC3_Init),
-		.in_mode = Input_Mode::SINGLE_ENDED,
-		.interrupt_callback = Context_Callback_Function(),
-		.interrupt_enabled = false,
-};
+//Triggered_ADC::Triggered_ADC_Hardware_Channel Triggered_ADC::CHANNEL_3 = {
+//		.hadc = &hadc3,
+//		.init_func = Callback_Function(MX_ADC3_Init),
+//		.in_mode = Input_Mode::SINGLE_ENDED,
+//		.interrupt_callback = Context_Callback_Function(),
+//		.interrupt_enabled = false,
+//};
 
 Triggered_ADC::Triggered_ADC_Hardware_Channel Triggered_ADC::CHANNEL_4 = {
 		.hadc = &hadc4,
@@ -174,11 +174,11 @@ std::pair<float, float> Triggered_ADC::get_gain_offset() {
  *  - read the ADC_DR to get the regular data converted
  */
 void ADC3_IRQHandler(void) {
-	//clear the interrupts (should just be the end of conversion interrupt)
-	Triggered_ADC::CHANNEL_3.hadc->Instance->ISR = Triggered_ADC::CLEAR_ALL_INTERRUPTS;
-
-	//run the callback function associated with this interrupt
-	Triggered_ADC::CHANNEL_3.interrupt_callback();
+//	//clear the interrupts (should just be the end of conversion interrupt)
+//	Triggered_ADC::CHANNEL_3.hadc->Instance->ISR = Triggered_ADC::CLEAR_ALL_INTERRUPTS;
+//
+//	//run the callback function associated with this interrupt
+//	Triggered_ADC::CHANNEL_3.interrupt_callback();
 }
 
 void ADC4_IRQHandler(void) {

@@ -13,6 +13,36 @@
 
 //================================ STATIC METHODS ===============================
 
+//use the load pole to set the bandwidth of the controller;
+//do so by just adding some proportional gain
+Compensator::Biquad_Params Compensator::make_gains_dumb(	float desired_dc_gain, float f_crossover, float f_zero,
+															std::span<float, std::dynamic_extent> other_loop_gains, float fs)
+{
+	//do some sanity checking
+	if(f_zero > f_crossover) return {0};
+
+	//compute how much DC gain our forward path needs to place our cutoff frequency where we want
+	float required_dc_gain = f_crossover / f_zero;
+
+	//and now calculate the required controller gain based off all the gains in our forward path
+	float dc_gain_discrete = required_dc_gain;
+	for(float gain : other_loop_gains) {
+		dc_gain_discrete /= gain;
+	}
+
+	//build the IIR coefficients from these parameters
+	Biquad_Params comp_params = {
+			.a_1 = 0,
+			.a_2 = 0, //don't need this term
+			.b_0 = dc_gain_discrete,
+			.b_1 = 0,
+			.b_2 = 0, //don't need this term
+	};
+
+	//and return these created parameters
+	return comp_params;
+}
+
 //all frequencies in Hz, all gains in normal units (i.e. not in dB)
 Compensator::Biquad_Params Compensator::make_gains(	float desired_dc_gain, float f_crossover, float f_zero,
 													std::span<float, std::dynamic_extent> other_loop_gains, float fs)
@@ -130,7 +160,7 @@ float Compensator::compute(float input) {
 	ym1 = output; //will store our constrained output; avoids wind-up
 
 	//pop out the computed compensator output
-	return output;
+	return output; //std::clamp(output, output_min, output_max);
 }
 
 

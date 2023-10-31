@@ -22,7 +22,7 @@ Power_Stage_Subsystem::Channel_Hardware_Details Power_Stage_Subsystem::POWER_STA
 		.en_pin_name = PinMap::stage_enable,
 		.en_active_high = true,
 
-		.ifine = Triggered_ADC::CHANNEL_3,
+		.ifine = Triggered_ADC::CHANNEL_4, //TODO: revert to channel 3
 		.icoarse = Triggered_ADC::CHANNEL_4,
 };
 

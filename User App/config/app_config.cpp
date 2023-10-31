@@ -22,16 +22,16 @@ static const Configuration::Power_Stage_Channel_Config DEFAULT_CONFIG_PS_CHANNEL
 		.RANGE_BLEND_LENGTH = 1500,
 		.COARSE_AMP_GAIN_VpV = 10, //INA241x1
 		.COARSE_GAIN_TRIM = 1,
-		.COARSE_OFFSET_TRIM = -19,
+		.COARSE_OFFSET_TRIM = 14,
 
 		//controller parameters
 		.K_DC = 1000.0, //controller DC gain ~1000
-		.F_CROSSOVER = 20000.0, //current controller should cross over around 20kHz
+		.F_CROSSOVER = 10000.0, //current controller should cross over around 20kHz
 		.SETPOINT_RECON_BANDWIDTH = 10000.0, //setpoint reconstruction filter should start rolling off here
 
 		//parameters for the shim coil load
-		.LOAD_RESISTANCE = 210e-3, //testing with this DC resistance
-		.LOAD_CHARACTERISTIC_FREQ = 40000, //22uH, above DC resistance
+		.LOAD_RESISTANCE = 65e-3, //testing with this DC resistance
+		.LOAD_CHARACTERISTIC_FREQ = 500, //22uH, above DC resistance
 };
 
 const Configuration::Configuration_Params Configuration::DEFAULT_CONFIG = {

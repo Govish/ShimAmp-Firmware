@@ -53,7 +53,7 @@ float Sampler::get_current_reading() {
 }
 
 uint16_t Sampler::get_raw_fine() {
-	return curr_fine.get_val();
+	return 0; //return curr_fine.get_val();
 }
 
 uint16_t Sampler::get_raw_coarse() {
@@ -77,7 +77,7 @@ float Sampler::get_gain() {
 
 void Sampler::attach_sample_cb(Context_Callback_Function<> cb) {
 	//attach the callback function to the interrupts
-	curr_fine.attach_cb(cb);
+	//curr_fine.attach_cb(cb);
 	curr_coarse.attach_cb(cb);
 }
 
@@ -85,7 +85,7 @@ void Sampler::enable_callback() {
 	//disable just the COARSE ADC callback, and enable the fine callback;
 	//since `fine` channel will be read first
 	curr_coarse.enable_interrupt();
-	curr_fine.disable_interrupt();
+	//curr_fine.disable_interrupt();
 
 	//assert a flag
 	callback_enable = true;
@@ -93,7 +93,7 @@ void Sampler::enable_callback() {
 
 void Sampler::disable_callback() {
 	//disable both ADC conversion interrupts
-	curr_fine.disable_interrupt();
+	//curr_fine.disable_interrupt();
 	curr_coarse.disable_interrupt();
 
 	//deassert the flag
@@ -119,6 +119,9 @@ bool Sampler::set_limits_fine(const uint32_t min_code, const uint32_t max_code, 
 	//and also update the configuration
 	config.POWER_STAGE_CONFIGS[index].FINE_RANGE_VALID_LOW = min_code;
 	config.POWER_STAGE_CONFIGS[index].FINE_RANGE_VALID_HIGH	= max_code;
+
+	//recompute the current lookup tables
+	COMPUTE_LUTs();
 
 	//everything is kosher
 	return true;
@@ -157,28 +160,28 @@ bool Sampler::trim_coarse(float gain_trim, float offset_trim) {
 //trim the fine ADC, adjust config, and recompute constants
 bool Sampler::trim_fine(float gain_trim, float offset_trim) {
 	//don't allow this operation if the sampler is running --> updating ADC tables isn't atomic!
-	if(get_running()) return false;
-
-	//try to trim the ADC
-	if(!curr_fine.trim(gain_trim, offset_trim))
-		return false;
-
-	//compute the coarse channel overall gain and offset
-	//such that we get +/- current after applying (`ADC_counts` - offset) / gain
-	auto [adc_gain, adc_offset] = curr_fine.get_gain_offset();
-	fine_offset_counts = adc_offset +
-						curr_fine.get_adc_max_code() / 2.0f; //offset by half of the ADC range
-	fine_total_gain = adc_gain * //V_ADC to counts
-						config.POWER_STAGE_CONFIGS[index].FINE_AMP_GAIN_VpV * //V_shunt to V_ADC
-						config.POWER_STAGE_CONFIGS[index].SHUNT_RESISTANCE; //I_shunt to V_shunt
-
-	//get the cumulative trim values that we've applied to the ADC and store into config
-	auto [total_gain_trim, total_offset_trim] = curr_fine.get_trim();
-	config.POWER_STAGE_CONFIGS[index].FINE_GAIN_TRIM = total_gain_trim;
-	config.POWER_STAGE_CONFIGS[index].FINE_OFFSET_TRIM = total_offset_trim;
-
-	//update the current LUTs
-	COMPUTE_LUTs();
+//	if(get_running()) return false;
+//
+//	//try to trim the ADC
+//	if(!curr_fine.trim(gain_trim, offset_trim))
+//		return false;
+//
+//	//compute the coarse channel overall gain and offset
+//	//such that we get +/- current after applying (`ADC_counts` - offset) / gain
+//	auto [adc_gain, adc_offset] = curr_fine.get_gain_offset();
+//	fine_offset_counts = adc_offset +
+//						curr_fine.get_adc_max_code() / 2.0f; //offset by half of the ADC range
+//	fine_total_gain = adc_gain * //V_ADC to counts
+//						config.POWER_STAGE_CONFIGS[index].FINE_AMP_GAIN_VpV * //V_shunt to V_ADC
+//						config.POWER_STAGE_CONFIGS[index].SHUNT_RESISTANCE; //I_shunt to V_shunt
+//
+//	//get the cumulative trim values that we've applied to the ADC and store into config
+//	auto [total_gain_trim, total_offset_trim] = curr_fine.get_trim();
+//	config.POWER_STAGE_CONFIGS[index].FINE_GAIN_TRIM = total_gain_trim;
+//	config.POWER_STAGE_CONFIGS[index].FINE_OFFSET_TRIM = total_offset_trim;
+//
+//	//update the current LUTs
+//	COMPUTE_LUTs();
 
 	//everything went alright
 	return true;
@@ -259,7 +262,7 @@ void Sampler::COMPUTE_LUTs() {
 	 *  5) the lookup coarse-range current value is between `blend_start_low_current` and `blend_start_high_current` (excl.) --> NULL THESE VALUES OUT
 	 */
 
-	//REMOVE AFTER DEBUGGING!!!!
+	//TODO: REMOVE AFTER DEBUGGING!!!!
 	return;
 
 	//just go through all the samples and apply blending conditionally
