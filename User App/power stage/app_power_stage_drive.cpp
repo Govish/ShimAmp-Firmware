@@ -90,9 +90,9 @@ bool Power_Stage::set_drive(float drive) {
 //At zero level, both bridge halves will be running at their min duty cycle
 //in-phase, so will just produce a common-mode voltage at the output (which should be better than differential from a noise perspective)
 //the drive will just add to the minimum `on count` to inject current into the coil
-void Power_Stage::set_drive_raw(float raw_drive) {
-	//regulator could potentially exceed safe drive values--clamp (and int16_t cast) here
-	int16_t drive = (int16_t)std::clamp(raw_drive, -max_drive_delta, max_drive_delta);
+void Power_Stage::set_drive_raw(int16_t drive) {
+	//NO BOUNDS CHECKING DONE HERE FOR PERFORMANCE REASONS
+	//BOUNDS CHECKING WILL BE DONE AT THE OUTPUT OF THE COMPENSATOR
 
 	//and actually drive the stages now
 	if(drive >= 0) {
@@ -201,6 +201,11 @@ float Power_Stage::GET_FSW() {
 //so 1/PERIOD is our forward path gain through here
 float Power_Stage::get_gain() {
 	return 1/((float)HRPWM::GET_PERIOD());
+}
+
+//return the maximum allowable raw command value
+float Power_Stage::get_max_drive_delta() {
+	return max_drive_delta;
 }
 
 

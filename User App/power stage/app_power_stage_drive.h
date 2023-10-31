@@ -50,7 +50,7 @@ public:
 	//setter methods that set the drive state of the power stage
 	//intended to be interfaced through the controller
 	bool set_drive(float drive); // -1 to 1, full negative to full positive, true if set successfully
-	void set_drive_raw(float raw_drive); //function that allows the regulator to interface with the power stage
+	void set_drive_raw(int16_t drive); //function that allows the regulator to interface with the power stage
 	bool set_drive_halves(float drive_pos, float drive_neg); //drive each individual bridge half with particular duties, 0-1; true if set successfully
 	float get_drive_duty(); //-1 to 1, whatever the bridge is currently being driven with
 	int16_t get_drive_raw(); //read right from the registers, and do a little conversion to sign this number
@@ -62,7 +62,9 @@ public:
 
 	//get the forward path gain of the power stage
 	//useful for control design (don't care too much about the max counts, as that will be constrained by the stage itself)
+	//additionally provide a function that returns the maximum allowable command value to the stage
 	float get_gain();
+	float get_max_drive_delta();
 
 private:
 	//================================== OPERATING CONSTANTS FOR HARDWARE =========================================

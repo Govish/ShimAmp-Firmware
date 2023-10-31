@@ -101,7 +101,9 @@ bool HRPWM::SET_ADC_TRIGGER_FREQUENCY(float ftrig_hz) {
 	uint8_t adc_multiple = 2.0f*std::floor(hrtim_trig_freq / (2.0f * ftrig_hz)) + 1;
 
 	//write the dividing factor to the ADC trigger postscaler bits (subtract 1 to get register value)
-	hrtim_handle->Instance->sCommonRegs.ADCPS1 = (adc_multiple - 1) &  ADC_POSTSCALER_MASK;
+	//post-scale both the ADC1 and ADC2 triggers
+	hrtim_handle->Instance->sCommonRegs.ADCPS1 = 	((adc_multiple - 1) &  ADC_POSTSCALER_MASK) << HRTIM_ADCPS1_AD1PSC_Pos |
+													((adc_multiple - 1) &  ADC_POSTSCALER_MASK) << HRTIM_ADCPS1_AD2PSC_Pos;
 	return true;
 }
 

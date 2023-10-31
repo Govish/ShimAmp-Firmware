@@ -7,8 +7,6 @@
 
 #include "app_power_stage_top_level.h"
 
-#include <functional> //for std::ref
-
 
 //============================= STATIC MEMBER INITIALIZATION ============================
 

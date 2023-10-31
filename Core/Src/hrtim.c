@@ -60,12 +60,21 @@ void MX_HRTIM1_Init(void)
     Error_Handler();
   }
   pADCTriggerCfg.UpdateSource = HRTIM_ADCTRIGGERUPDATE_MASTER;
-  pADCTriggerCfg.Trigger = HRTIM_ADCTRIGGEREVENT13_MASTER_PERIOD|HRTIM_ADCTRIGGEREVENT13_MASTER_CMP1;
+  pADCTriggerCfg.Trigger = HRTIM_ADCTRIGGEREVENT13_MASTER_PERIOD|HRTIM_ADCTRIGGEREVENT13_MASTER_CMP2;
   if (HAL_HRTIM_ADCTriggerConfig(&hhrtim1, HRTIM_ADCTRIGGER_1, &pADCTriggerCfg) != HAL_OK)
   {
     Error_Handler();
   }
   if (HAL_HRTIM_ADCPostScalerConfig(&hhrtim1, HRTIM_ADCTRIGGER_1, 0x2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  pADCTriggerCfg.Trigger = HRTIM_ADCTRIGGEREVENT24_MASTER_CMP1|HRTIM_ADCTRIGGEREVENT24_MASTER_CMP3;
+  if (HAL_HRTIM_ADCTriggerConfig(&hhrtim1, HRTIM_ADCTRIGGER_2, &pADCTriggerCfg) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_HRTIM_ADCPostScalerConfig(&hhrtim1, HRTIM_ADCTRIGGER_2, 0x2) != HAL_OK)
   {
     Error_Handler();
   }
@@ -83,7 +92,7 @@ void MX_HRTIM1_Init(void)
   pTimerCfg.DMADstAddress = 0x0000;
   pTimerCfg.DMASize = 0x1;
   pTimerCfg.HalfModeEnable = HRTIM_HALFMODE_DISABLED;
-  pTimerCfg.InterleavedMode = HRTIM_INTERLEAVED_MODE_DUAL;
+  pTimerCfg.InterleavedMode = HRTIM_INTERLEAVED_MODE_QUAD;
   pTimerCfg.StartOnSync = HRTIM_SYNCSTART_DISABLED;
   pTimerCfg.ResetOnSync = HRTIM_SYNCRESET_DISABLED;
   pTimerCfg.DACSynchro = HRTIM_DACSYNC_NONE;

@@ -107,6 +107,12 @@ Compensator::Biquad_Params Compensator::make_gains(	float desired_dc_gain, float
 
 //================================ INSTANCE METHODS =============================
 
+//update our bounds variables
+void Compensator::set_output_limits(float low_lim, float high_lim) {
+	output_min = low_lim;
+	output_max = high_lim;
+}
+
 //just need to implement compute override
 //NOTE: I got rid of gain trim in order to speed up the computations
 float Compensator::compute(float input) {
@@ -116,9 +122,12 @@ float Compensator::compute(float input) {
 	output += xm1 * params.b_1;
 	output -= ym1 * params.a_1;
 
+	//constrain the output to our bounds
+	output = std::clamp(output, output_min, output_max);
+
 	//rotate the memory elements--just need to remember the previous iteration values
 	xm1 = input;
-	ym1 = output;
+	ym1 = output; //will store our constrained output; avoids wind-up
 
 	//pop out the computed compensator output
 	return output;

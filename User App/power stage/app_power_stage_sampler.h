@@ -58,7 +58,7 @@ public:
 	 *
 	 * NOTE: ADC LIMITS ARE EXCLUSIVE! Trim functions are just passthroughs to the ADC trimming basically
 	 */
-	bool set_limits_fine(const uint32_t min_code, const uint32_t max_code);
+	bool set_limits_fine(const uint32_t min_code, const uint32_t max_code, const uint32_t blend_length);
 	bool trim_fine(float gain_trim, float offset_trim);
 	bool trim_coarse(float gain_trim, float offset_trim);
 
@@ -108,8 +108,14 @@ public:
 	static float GET_SAMPLING_FREQUENCY();
 
 private:
-
-	void __attribute__((optimize("O3"))) SAMPLE_ISR(); //run this as ADC callback function, heavily optimize
+	/*
+	 * CALL THIS FUNCTION TO COMPUTE OUR ADC LOOKUP TABLES
+	 * Uses the following (internally maintained) parameters:
+	 * 	- fine/coarse offset counts
+	 * 	- fine/coarse total gain
+	 * 	- TODO: BLEND START, BLEND END
+	 */
+	void COMPUTE_LUTs();
 
 	//=========================== ADC RELATED VARIABLES ========================
 
@@ -118,8 +124,9 @@ private:
 	Triggered_ADC curr_coarse;
 
 	//##### FINE RANGE PARAMETERS #####
-	uint16_t if_min = 0;
-	uint16_t if_max = 0xFFFF;
+	uint16_t if_min; //code value is EXCLUSIVE i.e. this corresponds to the first INVALID code on the low side
+	uint16_t if_max; //code value is EXCLUSIVE i.e. this corresponds to the first INVALID code on the high side
+	uint16_t blend_counts; //this many counts from if_min, and if_max
 
 	//##### GAIN AND OFFSET CONSTANTS #####
 	//these are sums/products of application related gains/offsets as well as ADC trimming constants
@@ -127,6 +134,17 @@ private:
 	float coarse_offset_counts;
 	float fine_total_gain;
 	float coarse_total_gain;
+
+	/*
+	 * ADC COUNT TO CURRENT LOOKUP TABLES
+	 * A speculation, but I implementing ADC to current conversion as a LUT
+	 * should be faster than doing even the relatively simple floating-point arithmetic
+	 * Also has a byproduct of letting us implement a "cross-fader" that gradually switches between the fine and coarse ranges
+	 */
+	static const size_t TABLE_SIZE = (size_t)Triggered_ADC::get_adc_max_code() + 1; //should be 12 bits
+	std::array<float, TABLE_SIZE> ADC_LUT_FINE = {0};
+	std::array<float , TABLE_SIZE> ADC_LUT_COARSE = {0};
+
 
 	//=========================== ADDITIONAL MEMBER VARIABLES ===========================
 
@@ -168,7 +186,11 @@ public:
 	inline uint16_t read_coarse_raw() {return sampler.get_raw_coarse();}
 
 	//==================== INSTANCE SETTERS =================
-	inline bool set_limits_fine(const uint16_t min_code, const uint16_t max_code) { return sampler.set_limits_fine(min_code, max_code);} //forward to sampler
+
+	inline bool set_limits_fine(const uint32_t min_code, const uint32_t max_code, const uint32_t blend_length) {
+		return sampler.set_limits_fine(min_code, max_code, blend_length);
+	} //forward to sampler
+
 	inline bool trim_fine(float gain_trim, float offset_trim) { return sampler.trim_fine(gain_trim, offset_trim);} //forward to sampler
 	inline bool trim_coarse(float gain_trim, float offset_trim) { return sampler.trim_coarse(gain_trim, offset_trim);} //forward to sampler
 	inline std::pair<uint32_t, uint32_t> get_limits_fine() { return sampler.get_limits_fine(); }

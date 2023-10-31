@@ -121,7 +121,7 @@ void MX_ADC4_Init(void)
   hadc4.Init.ContinuousConvMode = DISABLE;
   hadc4.Init.NbrOfConversion = 1;
   hadc4.Init.DiscontinuousConvMode = DISABLE;
-  hadc4.Init.ExternalTrigConv = ADC_EXTERNALTRIG_HRTIM_TRG1;
+  hadc4.Init.ExternalTrigConv = ADC_EXTERNALTRIG_HRTIM_TRG2;
   hadc4.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
   hadc4.Init.DMAContinuousRequests = DISABLE;
   hadc4.Init.Overrun = ADC_OVR_DATA_OVERWRITTEN;

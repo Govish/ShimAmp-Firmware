@@ -84,7 +84,7 @@ public:
 
 	//return the maximum ADC code for any kinda relevant gain/offset calculations
 	//defining as constexpr so we can use this to size stuff at compile time
-	inline constexpr float get_adc_max_code() {
+	static inline constexpr float get_adc_max_code() {
 		return ADC_MAX_CODE;
 	}
 

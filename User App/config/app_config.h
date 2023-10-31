@@ -39,6 +39,7 @@ public:
 		float FINE_OFFSET_TRIM; //in units of current (A)
 		uint16_t FINE_RANGE_VALID_LOW; //minimum possible code for which the fine range is reliable (EXCLUSIVE)
 		uint16_t FINE_RANGE_VALID_HIGH; //maximum possible code for which the fine range is reliable (EXCLUSIVE)
+		uint16_t RANGE_BLEND_LENGTH;
 		float COARSE_AMP_GAIN_VpV; //gain of the coarse range current sense amplifier (Volts/Volt)
 		float COARSE_GAIN_TRIM; //unitless ratio
 		float COARSE_OFFSET_TRIM; //in units of current (A)

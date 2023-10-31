@@ -85,6 +85,10 @@ bool Regulator::recompute_rate(	float desired_dc_gain,
 	//initialize the compensator with the computed biquad constants
 	comp.update_params(comp_params);
 
+	//additionally, update our output limits from power stage limits
+	float max_drive = stage.get_max_drive_delta();
+	comp.set_output_limits(-max_drive, max_drive);
+
 	//update the configuration with these new parameters as well
 	params.POWER_STAGE_CONFIGS[index].K_DC = desired_dc_gain;
 	params.POWER_STAGE_CONFIGS[index].F_CROSSOVER = desired_crossover_freq;
@@ -189,5 +193,5 @@ void Regulator::regulate() {
 	float output = comp.compute(error);
 
 	//throw the output to the power stage (stage will constrain this output)
-	stage.set_drive_raw(output);
+	stage.set_drive_raw((int16_t)output);
 }

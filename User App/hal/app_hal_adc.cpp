@@ -3,6 +3,12 @@
  *
  *  Created on: Oct 15, 2023
  *      Author: Ishaan
+ *
+ *  FOR PERSONAL REFERENCE:
+ *  	- HRTIM ADC TRIGGER 1 triggers on counter period and halfway		--> ADC3
+ *  	- HRTIM ADC TRIGGER 2 triggers on 1/4 and 3/4 way through period	--> ADC4
+ *
+ *  THIS MEANS THAT WE NEED TO RUN THE INTERRUPT OFF OF WHICHEVER CHANNEL IS TRIGGERED FROM SOURCE 2
  */
 
 
@@ -87,8 +93,11 @@ void Triggered_ADC::init() {
 	//which wouldn't happen if I sampled with a normal pre-determined sample time
 	//as such, I'll just stick to a fixed 12.5-cycle acquisition time
 	//	\--> longer acq. times, though theoretically possible, also had weird ADC errors
-	hardware.hadc->Instance->SMPR1 = ADC_SAMPLETIME_12CYCLES_5; //only sampling one channel, so this is all we need to do
+	//TODO: EVEN THIS IS BEING WEIRD--FIX!!!!
+	//hardware.hadc->Instance->SMPR1 = ADC_SAMPLETIME_12CYCLES_5; //only sampling one channel, so this is all we need to do
 	//hardware.hadc->Instance->CFGR2 |= ADC_CFGR2_BULB_Msk;
+	//UPDATE: this might be a silicon issue?
+	//https://www.st.com/resource/en/errata_sheet/es0430-stm32g471xx473xx474xx483xx484xx-device-errata-stmicroelectronics.pdf#page=17&zoom=100,0,136
 
 	//disable interrupts by default
 	disable_interrupt();

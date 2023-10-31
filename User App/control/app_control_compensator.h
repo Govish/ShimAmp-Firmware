@@ -14,6 +14,7 @@
 #define CONTROL_APP_CONTROL_COMPENSATOR_H_
 
 #include <span> //to pass gains for gain trim computation function
+#include <limits> //extreme float values for initialization
 
 #include "app_control_biquad.h" //compensator is a special case biquad with just single pole and zero
 
@@ -49,7 +50,15 @@ public:
 	//can also allow for gain post-scaling (to compensate for DC gain variations
 	float __attribute__((optimize("O3"))) compute(float input) override;
 
+	//additionally provide a method to set the output boundaries of the compensator
+	//prevents "wind up" of the output value, theoretically making control loops more predictable
+	void set_output_limits(float low_lim, float high_lim);
+
 private:
+	//have some variables that set the boundaries of the output
+	//default these to be basically nonexistent
+	float output_max = std::numeric_limits<float>::max();
+	float output_min = -std::numeric_limits<float>::max();
 };
 
 
